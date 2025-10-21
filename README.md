@@ -1,16 +1,49 @@
-# React + Vite
+# Operation DevOps — Learning Tool Prototype
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web-based conceptual prototype for exploring and teaching DevOps principles through project-based learning.
+This project is part of my bachelor thesis:
+“Teaching DevOps in Higher Education: Exploring Instructor Approaches, Student Perspectives, and the Role of Web-Based Learning Tools.”
 
-Currently, two official plugins are available:
+## Current Status (Setup & Layout Structure)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Project initialized with Vite + React
+- Tailwind CSS v3 and shadcn/ui configured
+- Basic routing and navigation established
+- Git repository ready for future development
 
-## React Compiler
+## Next Steps
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- GitOps Workspace Mock (students simulate commits and observe pipeline triggers)
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Frontend**: React (Vite)
+- **Styling**: Tailwind CSS + shadcn/ui + Lucide Icons
+- **Routing**: React Router DOM
+- **Animations (soon)**: Framer Motion
+- **Charts (soon)**: Recharts
+- **Package Manager**: npm
+
+## Project Structure
+
+The relevant files can be found `src` folder:
+```
+src/
+ ├─ components/        → Reusable UI elements
+ ├─ pages/             → App views (Student, Pipeline, Monitoring, Reflection, Instructor)
+ ├─ App.jsx            → Main component with routing
+ ├─ main.jsx           → Entry point
+ └─ index.css          → Tailwind directives
+```
+
+## Setup
+
+```
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+```
+Visit http://localhost:5173 to view the app.
