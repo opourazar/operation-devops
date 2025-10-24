@@ -8,18 +8,27 @@ This project is part of my bachelor thesis:
 
 - Project initialized with Vite + React
 - Tailwind CSS v3 and shadcn/ui configured
-- Basic routing and navigation established
-- Git repository ready for future development
+- Basic routing and navigation established (Student, Pipeline, Monitoring, Reflection, Instructor)
+- GitOps Workspace implemented with:
+    - Monaco-based code editor (Dockerfile example)
+    - Commit → Feedback → Reflection workflow
+    - Context-aware feedback (tiered hints)
+    - Local reflection storage
+    - Mock Push → Pipeline Simulation (build/deploy visualization)
 
 ## Next Steps
 
-- GitOps Workspace Mock (students simulate commits and observe pipeline triggers)
+- Extend Pipeline Simulation with success/failure paths and logs
+- Implement Monitoring View (Grafana-style mock metrics)
+- Add hint-tier progression logic and refined success conditions
+- Introduce instructor perspective (scenario creation + feedback analytics)
 
 ## Tech Stack
 
 - **Frontend**: React (Vite)
 - **Styling**: Tailwind CSS + shadcn/ui + Lucide Icons
 - **Routing**: React Router DOM
+- **State / Storage**: React hooks + Local Storage
 - **Animations (soon)**: Framer Motion
 - **Charts (soon)**: Recharts
 - **Package Manager**: npm
@@ -29,7 +38,7 @@ This project is part of my bachelor thesis:
 The relevant files can be found in `src` folder:
 ```
 src/
- ├─ components/        → Reusable UI elements
+ ├─ components/        → Reusable UI elements (Editor, FeedbackPanel, ReflectionCard, PipelineSimulator)
  ├─ pages/             → App views (Student, Pipeline, Monitoring, Reflection, Instructor)
  ├─ App.jsx            → Main component with routing
  ├─ main.jsx           → Entry point
