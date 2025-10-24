@@ -26,7 +26,7 @@ This project is part of my bachelor thesis:
 
 ## Project Structure
 
-The relevant files can be found `src` folder:
+The relevant files can be found in `src` folder:
 ```
 src/
  ├─ components/        → Reusable UI elements
@@ -44,6 +44,5 @@ npm install
 
 # Run development server
 npm run dev
-
 ```
 Visit http://localhost:5173 to view the app.
