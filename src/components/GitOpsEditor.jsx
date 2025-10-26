@@ -5,6 +5,8 @@ import { format } from "date-fns";
 import FeedbackPanel from "@/components/FeedbackPanel";
 import ReflectionCard from "@/components/ReflectionCard";
 import PipelineSimulator from "./PipelineSimulator";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 export default function GitOpsEditor() {
   const [code, setCode] = useState(`# Example Dockerfile
@@ -17,16 +19,21 @@ CMD ["npm", "start"]`);
   const [feedback, setFeedback] = useState([]);
   const [showReflection, setShowReflection] = useState(false);
   const [pipelineTrigger, setPipelineTrigger] = useState(false);
+  const [feedbackLevel, setFeedbackLevel] = useState(1);
 
+  // Checks the committed code and provides tiered feedback
   function handleCommit() {
-    const { feedback: fb, success } = analyzeCode(code);
-    setFeedback(fb);
+    const fb = analyzeCode(code, feedbackLevel);
+    setFeedback(fb.feedback);
+    
     const newEntry = {
       type: "commit",
-      message: success ? "Successful commit" : "Commit with warnings",
+      message: fb.success ? "Successful commit" : `Commit attempt ${feedbackLevel}`,
       time: format(new Date(), "HH:mm:ss"),
     };
     setLog((prev) => [newEntry, ...prev]);
+    if (!fb.success && feedbackLevel < 3) setFeedbackLevel(prev => prev + 1);
+    if (fb.success) setFeedbackLevel(1);
     setShowReflection(true);
   }
 
@@ -35,6 +42,11 @@ CMD ["npm", "start"]`);
     const newEntry = { text, time: format(new Date(), "HH:mm:ss") };
     localStorage.setItem("reflections", JSON.stringify([newEntry, ...reflections]));
     setShowReflection(false);
+
+    // Log reflection for now (simulating analytics)
+    console.log("Reflection saved:", text);
+    // Notify other components that reflections updated
+    window.dispatchEvent(new Event("reflectionsUpdated"));
   }
 
   // Currently resets trigger after a timeout value (here 500 ms)
@@ -69,7 +81,20 @@ CMD ["npm", "start"]`);
 
         {/* Feedback and log */}
         <div className="space-y-4">
-          <FeedbackPanel feedback={feedback} />
+          <AnimatePresence>
+            {feedback.length > 0 && (
+              <motion.div
+                key={feedback.join("-")}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <FeedbackPanel feedback={feedback} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="border rounded-lg p-4 bg-slate-50">
             <h2 className="font-semibold mb-2">Commit Log</h2>
             <ul className="text-sm space-y-1">
@@ -92,19 +117,25 @@ CMD ["npm", "start"]`);
   );
 }
 
-function analyzeCode(code) {
+function analyzeCode(code, level) {
   const feedback = [];
   let success = false;
 
-  if (!code.includes("CMD"))
-    feedback.push("Hint: Add a CMD instruction to specify how the container starts.");
-  else if (!code.includes("EXPOSE"))
-    feedback.push("Reminder: Expose the port your application runs on.");
-  else if (!code.includes("WORKDIR"))
-    feedback.push("Hint (Level 3): You can add WORKDIR to define where your app runs.");
-  else if (feedback.length === 0){
-    feedback.push("✅ Great! Your Dockerfile meets key GitOps principles.");
+  const hasCMD = code.includes("CMD");
+  const hasEXPOSE = code.includes("EXPOSE");
+  const hasWORKDIR = code.includes("WORKDIR");
+
+  if (!hasCMD && level === 1) feedback.push("Hint 1: Add a CMD instruction.");
+  else if (!hasCMD && level === 2) feedback.push("Hint 2: CMD defines how the container starts.");
+  else if (!hasCMD && level === 3) feedback.push("Explanation: Without CMD, Docker doesn’t know what to execute.");
+
+  if (hasCMD && !hasEXPOSE) feedback.push("Hint: Remember to expose the port for your service.");
+  if (hasCMD && hasEXPOSE && !hasWORKDIR) feedback.push("Optional: Define WORKDIR to improve maintainability.");
+
+  if (hasCMD && hasEXPOSE) {
+    feedback.push("✅ Great! You applied key GitOps principles.");
     success = true;
   }
-  return {feedback, success};
+
+  return { feedback, success };
 }

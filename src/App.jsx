@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom"
-import { Button } from "@/components/ui/button"
 import './App.css'
+import { useState, useEffect } from "react";
 
 import Student from "./pages/Student"
 import Pipeline from "./pages/Pipeline"
@@ -9,6 +9,19 @@ import Reflection from "./pages/Reflection"
 import Instructor from "./pages/Instructor"
 
 function App() {
+  const [reflectionCount, setReflectionCount] = useState(
+    JSON.parse(localStorage.getItem("reflections") || "[]").length
+  );
+
+  useEffect(() => {
+    const updateCount = () => {
+      setReflectionCount(JSON.parse(localStorage.getItem("reflections") || "[]").length);
+    };
+
+    window.addEventListener("reflectionsUpdated", updateCount);
+    return () => window.removeEventListener("reflectionsUpdated", updateCount);
+  }, []);
+
   return (
     <BrowserRouter>
       {/* Navigation Bar */}
@@ -16,7 +29,12 @@ function App() {
         <Link to="/" className="font-medium hover:text-blue-600">Student</Link>
         <Link to="/pipeline" className="font-medium hover:text-blue-600">Pipeline</Link>
         <Link to="/monitoring" className="font-medium hover:text-blue-600">Monitoring</Link>
-        <Link to="/reflection"className="font-medium hover:text-blue-600">Reflection</Link>
+        <Link to="/reflection"> 
+          Reflection 
+          <span className="ml-1 text-xs bg-slate-200 px-2 py-0.5 rounded-full">
+            {reflectionCount}
+          </span>
+        </Link>
         <Link to="/instructor" className="font-medium hover:text-blue-600">Instructor</Link>
       </nav>
 
@@ -31,6 +49,7 @@ function App() {
         </Routes>
       </main>
     </BrowserRouter>
+
   )
 }
 
