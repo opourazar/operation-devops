@@ -12,6 +12,7 @@ export default function ReflectionHistory() {
       <ul className="text-sm space-y-2">
         {reflections.map((r, i) => (
           <li key={i} className="border-b pb-1">
+            <p className="text-sm italic text-gray-600">Prompt: “{r.prompt || "No prompt"}”</p>
             <p>{r.text}</p>
             <p className="text-xs text-gray-500">{r.time}</p>
           </li>

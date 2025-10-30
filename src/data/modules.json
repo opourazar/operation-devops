@@ -1,0 +1,179 @@
+[
+  {
+    "id": "module-1",
+    "title": "Containerization & GitOps Fundamentals",
+    "category": "DevOps Foundations",
+    "difficulty": "Beginner",
+    "bloom_level": "Apply",
+    "swebok_area": "Software Construction / Configuration Management",
+    "status": "unlocked",
+    "learning_objectives": [
+      "Understand version control and GitOps principles.",
+      "Apply containerization basics using Docker.",
+      "Relate containerization to continuous integration workflows."
+    ],
+    "phases": {
+      "prelab": {
+        "title": "Concept Warm-up",
+        "description": "Review the basics of Git, version control, and Dockerfiles. Learn how these concepts underpin reproducibility in DevOps.",
+        "activities": [
+          {
+            "type": "concept_card",
+            "content": "A Dockerfile defines how your app runs. Each instruction builds a layer. Common instructions: FROM, WORKDIR, COPY, EXPOSE, CMD."
+          },
+          {
+            "type": "example_task",
+            "content": "Examine this buggy Dockerfile and identify what’s missing or misplaced.",
+            "example_code": "FROM node:18\nCOPY . .\n# Missing CMD!"
+          }
+        ]
+      },
+      "lab": {
+        "title": "Scenario Challenge",
+        "scenario_prompt": "Fix the Dockerfile so that the build and run process succeed. Commit your changes to trigger a simulated CI build.",
+        "code_language": "dockerfile",
+        "feedback_logic": "analyzeCode",
+        "success_condition": "includes CMD, EXPOSE, WORKDIR",
+        "story_context": "You're working with a team whose container build keeps failing before a sprint demo. Fix it before the deadline!",
+        "collaboration_hint": "A teammate suggests: 'Check if the container actually knows what to run.'"
+      },
+      "postlab": {
+        "title": "Reflect and Extend",
+        "reflection_prompts": [
+          "What caused the initial build failure?",
+          "Which Dockerfile instruction was most critical to success?",
+          "How does GitOps ensure reproducibility and transparency?"
+        ],
+        "further_resources": [
+          {
+            "label": "Dockerfile Best Practices (Docker Docs)",
+            "url": "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/"
+          },
+          {
+            "label": "Introduction to GitOps (Weaveworks)",
+            "url": "https://www.weave.works/technologies/gitops/"
+          }
+        ]
+      }
+    },
+    "unlocks": ["module-2"]
+  },
+  {
+    "id": "module-2",
+    "title": "Container Orchestration & CI/CD Automation",
+    "category": "Automation & Scaling",
+    "difficulty": "Intermediate",
+    "bloom_level": "Analyze",
+    "swebok_area": "Software Engineering Management / Infrastructure",
+    "status": "locked",
+    "learning_objectives": [
+      "Understand Kubernetes architecture and workflow.",
+      "Deploy and scale applications with YAML manifests.",
+      "Analyze CI/CD pipelines and identify orchestration issues."
+    ],
+    "phases": {
+      "prelab": {
+        "title": "Orchestration Primer",
+        "description": "Learn how Kubernetes automates deployment and scaling.",
+        "activities": [
+          {
+            "type": "concept_card",
+            "content": "In Kubernetes, a Deployment manages pods and ensures desired state. Common objects: Pod, Service, Deployment, ReplicaSet."
+          },
+          {
+            "type": "example_task",
+            "content": "Spot the error: Why won’t this Deployment create pods?",
+            "example_code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\nspec:\n  template:\n    spec:\n      containers:\n        - name: web\n          image: nginx"
+          }
+        ]
+      },
+      "lab": {
+        "title": "Scenario Challenge",
+        "scenario_prompt": "Your Deployment fails to roll out. Fix the YAML so that Kubernetes deploys the application successfully.",
+        "code_language": "yaml",
+        "feedback_logic": "analyzeDeployment",
+        "success_condition": "contains apiVersion, kind, metadata, spec, containers",
+        "story_context": "Your CI/CD pipeline failed due to an invalid manifest. The team depends on you to restore service uptime.",
+        "collaboration_hint": "Ops lead says: 'The Deployment might not have replicas or labels set properly.'"
+      },
+      "postlab": {
+        "title": "Reflect and Extend",
+        "reflection_prompts": [
+          "What caused the deployment error?",
+          "How does orchestration reduce manual intervention?",
+          "What metrics could you monitor to verify successful rollout?"
+        ],
+        "further_resources": [
+          {
+            "label": "Kubernetes Basics (Interactive)",
+            "url": "https://kubernetes.io/docs/tutorials/kubernetes-basics/"
+          },
+          {
+            "label": "GitOps & Continuous Delivery with Argo CD",
+            "url": "https://argo-cd.readthedocs.io/en/stable/"
+          }
+        ]
+      }
+    },
+    "unlocks": ["module-3"]
+  },
+  {
+    "id": "module-3",
+    "title": "Cloud Deployment & Monitoring",
+    "category": "Continuous Delivery & Cloud Integration",
+    "difficulty": "Advanced",
+    "bloom_level": "Evaluate",
+    "swebok_area": "Software Engineering Management / Deployment / Maintenance",
+    "status": "locked",
+    "learning_objectives": [
+      "Apply Infrastructure as Code principles with Helm or Terraform.",
+      "Evaluate trade-offs between cost, scalability, and reliability.",
+      "Monitor deployments and analyze logs to improve DevOps performance."
+    ],
+    "phases": {
+      "prelab": {
+        "title": "Infrastructure as Code Overview",
+        "description": "Explore how IaC automates infrastructure provisioning and versioning.",
+        "activities": [
+          {
+            "type": "concept_card",
+            "content": "Infrastructure as Code allows managing servers and configurations declaratively. Common tools: Terraform, Helm, Ansible."
+          },
+          {
+            "type": "example_task",
+            "content": "Review this Terraform snippet — what’s missing to create an instance?",
+            "example_code": "resource \"aws_instance\" \"web\" {\n  ami = \"ami-12345\"\n  # Missing instance_type!"
+          }
+        ]
+      },
+      "lab": {
+        "title": "Scenario Challenge",
+        "scenario_prompt": "Optimize the given Terraform configuration for cost and reliability. Your deployment must meet the SLA while minimizing resources.",
+        "code_language": "hcl",
+        "feedback_logic": "analyzeIaC",
+        "success_condition": "contains resource, provider, output, variable",
+        "story_context": "Your team’s cloud costs are spiking. Management asked you to refactor the IaC scripts to use reserved instances and smaller VM types.",
+        "collaboration_hint": "Cloud architect says: 'Check your instance types and region pricing.'"
+      },
+      "postlab": {
+        "title": "Reflect and Extend",
+        "reflection_prompts": [
+          "Which IaC principle helped most in optimizing deployments?",
+          "How can monitoring tools like Grafana or Prometheus aid cost control?",
+          "What challenges persist in balancing performance and cost?"
+        ],
+        "further_resources": [
+          {
+            "label": "Terraform Best Practices",
+            "url": "https://developer.hashicorp.com/terraform/tutorials/configuration-language"
+          },
+          {
+            "label": "Prometheus + Grafana Monitoring Overview",
+            "url": "https://prometheus.io/docs/visualization/grafana/"
+          }
+        ]
+      }
+    },
+    "unlocks": []
+  }
+]

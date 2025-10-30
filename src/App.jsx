@@ -3,7 +3,7 @@ import './App.css'
 import { useState, useEffect } from "react";
 
 import Student from "./pages/Student"
-import Pipeline from "./pages/Pipeline"
+import ModuleWorkspace from "./pages/ModuleWorkspace"
 import Monitoring from "./pages/Monitoring"
 import Reflection from "./pages/Reflection"
 import Instructor from "./pages/Instructor"
@@ -27,7 +27,7 @@ function App() {
       {/* Navigation Bar */}
       <nav className="flex gap-4 p-4 border-b bg-slate-50 shadow-sm">
         <Link to="/" className="font-medium hover:text-blue-600">Student</Link>
-        <Link to="/pipeline" className="font-medium hover:text-blue-600">Pipeline</Link>
+        <Link to="/workspace" className="font-medium hover:text-blue-600">Workspace</Link>
         <Link to="/monitoring" className="font-medium hover:text-blue-600">Monitoring</Link>
         <Link to="/reflection"> 
           Reflection 
@@ -42,7 +42,7 @@ function App() {
       <main className="p-6">
         <Routes>
           <Route path="/" element={<Student />} />
-          <Route path="/pipeline" element={<Pipeline />} />
+          <Route path="/workspace" element={<ModuleWorkspace />} />
           <Route path="/monitoring" element={<Monitoring />} />
           <Route path="/reflection" element={<Reflection />} />
           <Route path="/instructor" element={<Instructor />} />
