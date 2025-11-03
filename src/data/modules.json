@@ -15,16 +15,71 @@
     "phases": {
       "prelab": {
         "title": "Concept Warm-up",
-        "description": "Review the basics of Git, version control, and Dockerfiles. Learn how these concepts underpin reproducibility in DevOps.",
+        "description": "Review the basics of Git, version control, and Dockerfiles. Learn how these concepts support reproducibility in DevOps.",
         "activities": [
           {
             "type": "concept_card",
-            "content": "A Dockerfile defines how your app runs. Each instruction builds a layer. Common instructions: FROM, WORKDIR, COPY, EXPOSE, CMD."
+            "content": "### What is Git and Why DevOps Relies on It\nGit is a **distributed version control system** that tracks changes in source code. DevOps teams use it to manage collaboration, rollback errors, and automate continuous integration. Every change is a 'commit', and branches allow isolated work before merging."
+          },
+          {
+            "type": "concept_card",
+            "content": "### Common Git Commands\n- `git add`: Stage files for commit.\n- `git commit -m \"message\"`: Save staged changes with a message.\n- `git push`: Upload commits to a remote repository.\n- `git pull`: Fetch and merge remote updates.\n- `git merge`: Integrate changes from another branch.\n- `git checkout -b feature-name`: Create and switch to a new branch."
+          },
+          {
+            "type": "concept_card",
+            "content": "A Dockerfile defines how your app runs. Each instruction builds a layer. Common instructions: FROM, WORKDIR, COPY, EXPOSE, CMD.",
+            "deep_dive": "### Deep Dive: Layer Caching\nEach Dockerfile instruction creates a new **image layer**. Reordering instructions can dramatically change build speed. For example, `COPY package.json .` before `RUN npm install` allows Docker to cache dependencies between builds."
           },
           {
             "type": "example_task",
-            "content": "Examine this buggy Dockerfile and identify what’s missing or misplaced.",
-            "example_code": "FROM node:18\nCOPY . .\n# Missing CMD!"
+            "content": "Your team’s CI pipeline reports: “Error: no command specified to run the app.” Examine this Dockerfile — what’s causing the failure?",
+            "example_code": "FROM node:18-alpine\nWORKDIR /app\nCOPY . .\nRUN npm install\n# The Dockerfile builds successfully, but the container exits immediately on start.\n# What’s missing?"
+          },
+          {
+            "type": "quiz",
+            "question": "Looking at the Dockerfile above, what key instruction is missing that causes the container to exit immediately after build?",
+            "options": ["WORKDIR", "RUN", "CMD", "EXPOSE"],
+            "correct_answer": "CMD",
+            "explanation": "The Dockerfile builds but doesn’t know how to start the app. The CMD instruction defines what runs when the container starts.",
+            "remediation": "Without CMD, Docker containers exit immediately after creation. For example: CMD [\"node\", \"server.js\"]"
+          },
+          {
+            "type": "quiz",
+            "question": "Why is it beneficial to define WORKDIR before running COPY or RUN commands?",
+            "options": [
+              "It ensures files are placed in the correct context.",
+              "It slows the build process for caching.",
+              "It removes the need for CMD."
+            ],
+            "correct_answer": "It ensures files are placed in the correct context.",
+            "explanation": "WORKDIR provides a clean and predictable context for subsequent Dockerfile instructions."
+          },
+          {
+            "type": "micro_scenario",
+            "scenario": "Your repo has a new feature to test. Which Git command isolates your work safely?",
+            "context_code": "main  *----A----B (HEAD)\n           \\\n            (your work here)",
+            "options": [
+              "git push origin main",
+              "git switch feature/new-ui",
+              "git checkout -b feature/new-ui",
+              "git merge main"
+            ],
+            "correct_answer": "git checkout -b feature/new-ui",
+            "explanation": "Creating a new branch isolates changes from main, supporting safe experimentation.",
+            "remediation": "If you forgot, `git checkout -b <branch>` both creates and switches to a new branch — ideal for feature development."
+          },
+          {
+            "type": "resources",
+            "links": [
+              {
+                "label": "Dockerfile Best Practices (Docker Docs)",
+                "url": "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/"
+              },
+              {
+                "label": "Git Branching Model (Atlassian)",
+                "url": "https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow"
+              }
+            ]
           }
         ]
       },
@@ -34,13 +89,15 @@
         "code_language": "dockerfile",
         "feedback_logic": "analyzeCode",
         "success_condition": "includes CMD, EXPOSE, WORKDIR",
-        "story_context": "You're working with a team whose container build keeps failing before a sprint demo. Fix it before the deadline!",
+        "story_context": "You're working with a team whose container build keeps failing before a sprint demo. Help to fix it.",
         "collaboration_hint": "A teammate suggests: 'Check if the container actually knows what to run.'"
       },
       "postlab": {
         "title": "Reflect and Extend",
         "reflection_prompts": [
           "What caused the initial build failure?",
+          "How did branching protect your main codebase?",
+          "What did you learn about handling merge conflicts or reviews?",
           "Which Dockerfile instruction was most critical to success?",
           "How does GitOps ensure reproducibility and transparency?"
         ],
@@ -50,8 +107,8 @@
             "url": "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/"
           },
           {
-            "label": "Introduction to GitOps (Weaveworks)",
-            "url": "https://www.weave.works/technologies/gitops/"
+            "label": "Resolving Merge Conflicts (GitHub Docs)",
+            "url": "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts"
           }
         ]
       }
@@ -84,6 +141,30 @@
             "type": "example_task",
             "content": "Spot the error: Why won’t this Deployment create pods?",
             "example_code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\nspec:\n  template:\n    spec:\n      containers:\n        - name: web\n          image: nginx"
+          },
+          {
+            "type": "quiz",
+            "question": "Which field ensures that a Deployment knows how many pods to maintain?",
+            "options": ["metadata", "replicas", "apiVersion", "containers"],
+            "correct_answer": "replicas",
+            "explanation": "The replicas field tells Kubernetes how many pod instances should be running."
+          },
+          {
+            "type": "resources",
+            "links": [
+              {
+                "label": "Kubernetes Basics (Interactive)",
+                "url": "https://kubernetes.io/docs/tutorials/kubernetes-basics/"
+              },
+              {
+                "label": "GitOps & Continuous Delivery with Argo CD",
+                "url": "https://argo-cd.readthedocs.io/en/stable/"
+              },
+              {
+                "label": "Kubernetes Patterns – Reusable Elements for Design",
+                "url": "https://k8spatterns.io/"
+              }
+            ]
           }
         ]
       },
@@ -143,6 +224,30 @@
             "type": "example_task",
             "content": "Review this Terraform snippet — what’s missing to create an instance?",
             "example_code": "resource \"aws_instance\" \"web\" {\n  ami = \"ami-12345\"\n  # Missing instance_type!"
+          },
+          {
+            "type": "quiz",
+            "question": "Which Terraform block defines reusable configuration inputs?",
+            "options": ["provider", "variable", "resource", "output"],
+            "correct_answer": "variable",
+            "explanation": "The variable block lets you parameterize configurations and make modules reusable."
+          },
+          {
+            "type": "resources",
+            "links": [
+              {
+                "label": "Terraform Best Practices",
+                "url": "https://developer.hashicorp.com/terraform/tutorials/configuration-language"
+              },
+              {
+                "label": "Prometheus + Grafana Monitoring Overview",
+                "url": "https://prometheus.io/docs/visualization/grafana/"
+              },
+              {
+                "label": "AWS Well-Architected Framework",
+                "url": "https://aws.amazon.com/architecture/well-architected/"
+              }
+            ]
           }
         ]
       },

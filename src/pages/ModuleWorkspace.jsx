@@ -12,6 +12,8 @@ export default function ModuleWorkspace() {
   const [scenarioStep, setScenarioStep] = useState(1);
   
   useEffect(() => {
+    // Reset branch name on module start to avoid cross-module carryover
+  localStorage.removeItem("branchName");
     const activeId = localStorage.getItem("activeModule");
     if (activeId) {
       const found = modulesData.find((m) => m.id === activeId);
@@ -46,13 +48,6 @@ export default function ModuleWorkspace() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">{moduleData.title}</h1>
-
-      {/* Context / Scenario */}
-      {story && stage === "prelab" && (
-        <div className="p-4 border-l-4 border-blue-500 bg-blue-50 text-slate-700">
-          <strong>Scenario Context:</strong> {story}
-        </div>
-      )}
 
       {stage === "prelab" && (
         <PreLab moduleData={moduleData} onContinue={() => setStage("terminal")} />

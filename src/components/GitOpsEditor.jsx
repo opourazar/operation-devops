@@ -12,26 +12,49 @@ import { updateModuleProgress } from "@/lib/updateModuleProgress";
 
 export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance }) {
   const [code, setCode] = useState(`# Example Dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY . .
-RUN npm install
-# Missing CMD and EXPOSE intentionally`);
+  FROM node:18-alpine
+  WORKDIR /app
+  COPY . .
+  RUN npm install`);
+  const correctSolution = `FROM node:18-alpine
+  WORKDIR /app
+  COPY . .
+  RUN npm install
+  CMD ["node", "app.js"]
+  EXPOSE 80`;
   const [log, setLog] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [input, setInput] = useState("");
   const [showReflection, setShowReflection] = useState(false);
   const [pipelineTrigger, setPipelineTrigger] = useState(false);
   const [currentStep, setCurrentStep] = useState(scenarioStep);
-  const [branchName, setBranchName] = useState(localStorage.getItem("branchName") || "feature/fix-dockerfile");
+  const branchName = useState(localStorage.getItem("branchName") || "feature/fix-dockerfile");
   const [lastCommitMsg, setLastCommitMsg] = useState("");
   const terminalRef = useRef(null);
-
+  const [mergeConflict, setMergeConflict] = useState(false);
+  const [conflictIntroduced, setConflictIntroduced] = useState(false);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [showSolutionButton, setShowSolutionButton] = useState(false);
+  const [staged, setStaged] = useState(false);
+  const [hasCommitted, setHasCommitted] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [reflectionText, setReflectionText] = useState("");
   const currentStory = scenarioScript.find((s) => s.id === currentStep);
 
   useEffect(() => {
     terminalRef.current?.scrollTo(0, terminalRef.current.scrollHeight);
   }, [log]);
+
+  useEffect(() => {
+    if (currentStep === 8) {
+      setHasFetched(false);
+    }
+  }, [currentStep]);
+
+  useEffect(() => {
+    console.log("Modal visibility:", showCompletionModal);
+  }, [showCompletionModal]);
 
   function addTerminalLog(message) {
     setLog((prev) => [...prev, { message, time: format(new Date(), "HH:mm:ss") }]);
@@ -41,26 +64,44 @@ RUN npm install
     setLog((prev) => [{ type, message, time: format(new Date(), "HH:mm:ss") }, ...prev]);
   }
 
-  // 🧠 Feedback logic
-  function analyzeCode(code) {
+  /// Feedback logic with tiered hints
+  function analyzeCode(code, attempt = 1) {
     const feedback = [];
     let success = false;
 
+    const hasFROM = code.includes("FROM");
+    const hasWORKDIR = code.includes("WORKDIR");
+    const hasCOPY = code.includes("COPY");
+    const hasRUN = code.includes("RUN");
     const hasCMD = code.includes("CMD");
     const hasEXPOSE = code.includes("EXPOSE");
 
-    if (!hasCMD) feedback.push("Hint: Add a CMD instruction to specify how your container starts.");
-    if (!hasEXPOSE) feedback.push("Hint: Expose a port (e.g., 3000) so your service is reachable.");
+    // Detect destructive edits
+    if (!hasFROM || !hasWORKDIR || !hasCOPY || !hasRUN) {
+      feedback.push("⚠️ Some essential Dockerfile instructions (FROM, WORKDIR, COPY, RUN) seem to be missing.");
+    }
 
-    if (hasCMD && hasEXPOSE) {
-      feedback.push("✅ Excellent! Your Dockerfile looks complete.");
+    // Detect missing key fix parts
+    if (!hasCMD) feedback.push("Hint: Add a CMD instruction to specify how your container starts.");
+    if (!hasEXPOSE) feedback.push("Hint: Expose a port (e.g., 80 for localhost) so your service is reachable.");
+
+    // If student is stuck after multiple commits, escalate hinting
+    if (attempt > 2 && (!hasCMD || !hasEXPOSE)) {
+      feedback.push("💡 Need a stronger nudge? Try adding both:");
+      feedback.push(`CMD ["node", "app.js"]`);
+      feedback.push(`EXPOSE 80 or EXPOSE 3000`);
+    }
+
+    // Success condition
+    if (hasCMD && hasEXPOSE && hasFROM && hasWORKDIR && hasCOPY && hasRUN) {
+      feedback.push("Your Dockerfile looks complete and production-ready.");
       success = true;
     }
 
     return { feedback, success };
   }
 
-  // 🧩 Terminal command handler inside editor
+  // Terminal command handler inside editor
   function handleCommand(e) {
     e.preventDefault();
     const cmd = input.trim();
@@ -72,43 +113,149 @@ RUN npm install
     const matches = expected.some((pattern) => cmd.startsWith(pattern));
 
     // handle "git add"
-    if (cmd.startsWith("git add")) {
-      addTerminalLog("📦 Files staged successfully.");
+    if (cmd.startsWith("git add") && currentStep !== 7 && currentStep !== 9) {
+      setStaged(true);
+      addTerminalLog("Files staged successfully.");
       logAction("stage", "Files staged");
+
+      if (onAdvance && currentStory?.next) {
+      setTimeout(() => onAdvance(currentStory.next), 600);
+      setCurrentStep(currentStory.next);
+    }
       return;
     }
 
     // handle "git commit"
-    if (cmd.startsWith("git commit -m")) {
+    if (cmd.startsWith("git commit -m") && currentStep !== 7 && currentStep !== 9) {
       const commitMsg = cmd.match(/git commit -m\s+["'](.+)["']/);
-      if (commitMsg) setLastCommitMsg(commitMsg[1]);
-      handleCommit();
+      if (!staged && !mergeConflict) {
+      addTerminalLog("You must stage files first (use 'git add .').");
+      setInput("");
       return;
+      } else {
+        if (commitMsg) setLastCommitMsg(commitMsg[1]);
+        handleCommit();
+        setStaged(false);
+        return;
+      }
     }
 
     // handle "git push"
-    if (cmd.startsWith("git push")) {
+    if (cmd.startsWith("git push") && currentStep !== 7 && currentStep !== 9) {
       handlePush();
       return;
     }
 
     // handle "ok" or "continue" (review acknowledgement)
     if (cmd === "ok" || cmd === "continue") {
-      addTerminalLog("✅ Review acknowledged. Applying feedback...");
-      if (onAdvance && currentStory?.next) {
-        setTimeout(() => onAdvance(currentStory.next), 800);
-        setCurrentStep(currentStory.next);
+      addTerminalLog("Review acknowledged. Applying feedback...");
+      if (currentStep === 6 && onAdvance) {
+        setTimeout(() => onAdvance(7), 800);
+        setCurrentStep(7);
+      } else {
+        addTerminalLog("Nothing more to acknowledge right now.");
       }
       return;
     }
 
-    // handle merge actions
-    if (cmd.startsWith("git merge")) {
-      addTerminalLog("⚔️ Merge conflict detected in Dockerfile. Resolve manually in the editor.");
-      if (onAdvance && currentStory?.next) {
-        setTimeout(() => onAdvance(currentStory.next), 800);
-        setCurrentStep(currentStory.next);
+    // Stage, commit and push for colleague feedback integration
+    if (currentStep === 7) {
+      if (cmd.startsWith("git add")) {
+        setStaged(true);
+        addTerminalLog("Files staged successfully.");
+        return;
       }
+      if (cmd.startsWith("git commit -m")) {
+        if (!staged) {
+          addTerminalLog("⚠️ You must stage files first (use 'git add .').");
+          return;
+        }
+        handleCommit();
+        setStaged(false);
+        setHasCommitted(true); 
+        //addTerminalLog("✅ Commit created, now push your branch.");
+        return;
+      }
+      if (cmd.startsWith("git push")) {
+        if (!hasCommitted) {
+          addTerminalLog("⚠️ You haven’t committed any new changes yet. Run 'git commit -m \"...\"' first.");
+          return;
+        }
+        handlePush();
+        setHasCommitted(false);
+        return;
+      }
+    }
+
+    // handle merge actions
+    if (currentStep === 8) {
+      if (cmd === "git fetch") {
+        addTerminalLog("Fetched latest updates from origin/main.");
+        setHasFetched(true);
+        return;
+      }
+
+      if (cmd.startsWith("git merge main")) {
+        if (!hasFetched) {
+          addTerminalLog("⚠️ You need to fetch the latest changes first (run 'git fetch').");
+          return;
+        }
+        addTerminalLog("Merging main into your branch...");
+        addTerminalLog("⚠️ Merge conflict detected in Dockerfile!");
+        setMergeConflict(true);
+        setConflictIntroduced(true);
+        setCode(prev =>
+          `<<<<<<< HEAD\n${prev.trim()}\n=======\nEXPOSE 8080\n>>>>>>> main\n`
+        );
+
+        if (onAdvance) onAdvance(9);
+        setCurrentStep(9);
+        return;
+      }
+
+      addTerminalLog("💡 Hint: Try 'git fetch' then 'git merge main'.");
+      return;
+    }
+
+    if (currentStep === 9) {
+      if (cmd.startsWith("git add")) {
+        setStaged(true);
+        addTerminalLog("Files staged after resolving conflicts.");
+        return;
+      }
+
+      if (cmd.startsWith("git commit -m")) {
+        if (!staged) {
+          addTerminalLog("⚠️ You must stage your resolved file first (use 'git add .').");
+          return;
+        }
+
+        if (code.includes("<<<<<<<") || code.includes("=======") || code.includes(">>>>>>>")) {
+          addTerminalLog("⚠️ Conflict markers still present. Please resolve them first.");
+          return;
+        }
+
+        addTerminalLog("Commit successful: 'fix: resolve merge conflict'");
+        setMergeConflict(false);
+        setConflictIntroduced(false);
+        setStaged(false);
+        setHasCommitted(true);
+        addTerminalLog("✅ Conflicts resolved and committed locally. Now push to main.");
+        return;
+      }
+
+      if (cmd.startsWith("git push")) {
+        if (!hasCommitted) {
+          addTerminalLog("⚠️ You haven’t committed the resolved file yet. Run 'git commit -m' first.");
+          return;
+        }
+        addTerminalLog("Pushed branch to main. Merge completed successfully!");
+        if (onAdvance) onAdvance(10);
+        setCurrentStep(10);
+        return;
+      }
+
+      addTerminalLog("💡 Hint: Resolve conflicts, then 'git add .', 'git commit -m', 'git push origin main'.");
       return;
     }
 
@@ -118,46 +265,116 @@ RUN npm install
       return;
     }
 
+    // Success feedback and story step progression or show hints
     if (matches) {
-      addTerminalLog(`✅ ${currentStory.success}`);
+      addTerminalLog(` ${currentStory.success}`);
       if (onAdvance && currentStory.next) {
         setTimeout(() => onAdvance(currentStory.next), 800);
         setCurrentStep(currentStory.next);
       }
     } else if (cmd === "help") {
-      addTerminalLog(`💡 Hint: ${currentStory?.hint || "No hint available."}`);
+      addTerminalLog(`💡Hint: ${currentStory?.hint || "No hint available."}`);
     } else {
-      addTerminalLog("❌ Unknown command. Type 'help' for guidance.");
+      addTerminalLog(" Rethink your command choice. Type 'help' for guidance.");
     }
   }
 
-  // ✳️ Commit logic
+  // Commit logic
   function handleCommit() {
-    const fb = analyzeCode(code);
+    // If resolving a conflict
+    if (mergeConflict) {
+      if (code.includes("<<<<<<<") || code.includes("=======") || code.includes(">>>>>>>")) {
+        addTerminalLog("⚠️ Conflict markers still present. Please resolve them manually before committing.");
+        return;
+      } else {
+        addTerminalLog("Merge conflict resolved! Committing fix...");
+        setMergeConflict(false);
+        setConflictIntroduced(false);
+        addTerminalLog(`Commit successful: "${lastCommitMsg || "fix: resolve merge conflict"}"`);
+        setShowReflection(true); // reflection trigger preparation for Day 13
+        if (onAdvance) onAdvance(10); // move to pipeline stage
+        setCurrentStep(10);
+        return;
+      }
+    }
+
+    // Regular commit flow. Shows solution button if multiple failed attempts
+    const nextAttempt = attemptCount + 1;
+    setAttemptCount(nextAttempt);
+    const fb = analyzeCode(code, nextAttempt);
     setFeedback(fb.feedback);
+
     if (fb.success) {
-      addTerminalLog(`💬 Commit successful: "${lastCommitMsg || "fix: applied improvements"}"`);
-      addTerminalLog("📢 Awaiting colleague review...");
-      setTimeout(() => {
-        addTerminalLog("👩‍💻 Leia: Looks good! But please expose port 3000.");
-        if (onAdvance) onAdvance(6);
-        setCurrentStep(6);
-      }, 1200);
+      addTerminalLog(`Commit successful: "${lastCommitMsg || "fix: applied improvements"}"`);
+      addTerminalLog("Great! Now push your branch to share changes.");
+      setAttemptCount(0);
+      setShowSolutionButton(false);
+      if (currentStep !== 7 && onAdvance && currentStory?.next) {
+        setTimeout(() => onAdvance(currentStory.next), 800);
+        setCurrentStep(currentStory.next);
+      }
+      return;
     } else {
       addTerminalLog("⚠️ Commit recorded, but Dockerfile has remaining issues.");
+      if (onAdvance && currentStory?.id > 3) {
+        setTimeout(() => onAdvance(3), 800);
+        setCurrentStep(3);
+      }
+      if (nextAttempt >= 3) setShowSolutionButton(true);
     }
   }
 
-  // 🚀 Push logic
-  function handlePush() {
-    addTerminalLog(`📡 Pushed branch '${branchName}' to remote.`);
-    addTerminalLog("🔄 Simulating PR creation and review process...");
-    setPipelineTrigger(true);
-    setTimeout(() => setPipelineTrigger(false), 1000);
+  function handleShowSolution() {
+    setCode(correctSolution);
+    addTerminalLog("Solution applied. Review it carefully to understand why it works.");
+    setFeedback(["Correct solution applied. Reflect on the Dockerfile structure."]);
+    setShowSolutionButton(false);
   }
 
-  // 🧩 Simulate CI/CD run
+  // Push logic
+  function handlePush() {
+    addTerminalLog(` Pushed branch to remote.`);
+    const fb = analyzeCode(code);
+    const exposeMatch = code.match(/EXPOSE\s+(\d+)/i);
+    const exposePort = exposeMatch ? Number(exposeMatch[1]) : null;
+
+    // Case 1: Dockerfile correct and port is 3000
+    if (fb.success && exposePort === 3000) {
+      addTerminalLog("Leia: Perfect! All fixes verified. Merging your branch now...");
+      setTimeout(() => {
+        if (onAdvance) onAdvance(8);
+        setCurrentStep(8);
+      }, 1000);
+      return;
+    }
+
+    // Case 2: Wrong port or missing EXPOSE
+    if (fb.success && exposePort !== 3000) {
+      addTerminalLog(`Leia: Looks good overall, but please expose port 3000 (found EXPOSE ${exposePort || "none"}).`);
+      addTerminalLog("💬 Type 'ok' to acknowledge and fix it.");
+      setFeedback(["Expose port 3000 for accessibility."]);
+      if (onAdvance) onAdvance(6);
+      setCurrentStep(6);
+      return;
+    }
+
+    // Case 3: Other issues remain
+    addTerminalLog("Leia: I see some remaining issues in the Dockerfile.");
+    fb.feedback.forEach((msg) => addTerminalLog(msg));
+    addTerminalLog("💬 Type 'ok' to acknowledge and continue.");
+    setFeedback(fb.feedback);
+
+    if (onAdvance) onAdvance(6);
+    setCurrentStep(6);
+  }
+
+
+  // Simulate CI/CD run
   function handlePipelineRun() {
+    if (mergeConflict) {
+      addTerminalLog("❗ Cannot run pipeline while there is an unresolved merge conflict. Resolve it first.");
+      return;
+    }
     setPipelineTrigger(true);
     addTerminalLog("🔄 Running CI/CD pipeline simulation...");
     setTimeout(() => {
@@ -167,7 +384,7 @@ RUN npm install
     }, 2000);
   }
 
-  // 💭 Reflection save
+  // Reflection save
   function handleReflectionSave(text, prompt) {
     const reflections = JSON.parse(localStorage.getItem("reflections") || "[]");
     const newEntry = { text, prompt, time: format(new Date(), "HH:mm:ss") };
@@ -184,17 +401,48 @@ RUN npm install
         <Card className="p-4 border-l-4 border-blue-500 bg-blue-50">
           <p className="font-semibold">{currentStory.story}</p>
           <p className="text-sm text-slate-600 mt-1">
-            🧠 <em>{currentStory.learning_focus}</em>
-          </p>
-          <p className="text-sm text-slate-500 mt-1 italic">
-            Expected next: {currentStory.expected?.join(", ") || "—"}
+            <em>{currentStory.learning_focus}</em>
           </p>
         </Card>
       )}
 
+      {/* Feedback Panel*/}
+      <AnimatePresence>
+        {feedback.length > 0 && (
+          <motion.div
+            key={feedback.join("-")}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            <FeedbackPanel feedback={feedback} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Show Solution Button (appears after 3 failed attempts) */}
+      {showSolutionButton && (
+        <div className="text-center mt-4">
+          <Button
+            onClick={handleShowSolution}
+            variant="outline"
+            className="text-blue-700 border-blue-400"
+          >
+            💡 Show Solution
+          </Button>
+          <p className="text-xs text-gray-500 mt-1">
+            Review the applied fix to learn why it resolves the build issue.
+          </p>
+        </div>
+      )}
+
       <div className="grid md:grid-cols-2 gap-6">
         {/* Editor */}
-        <div className="border rounded-xl overflow-hidden shadow-sm">
+        <div className={`border rounded-xl overflow-hidden shadow-sm transition ${
+            mergeConflict ? "border-red-500 ring-2 ring-red-200" : ""
+          }`}
+        >
           <Editor
             height="60vh"
             language="dockerfile"
@@ -229,23 +477,65 @@ RUN npm install
         </Card>
       </div>
 
-      <AnimatePresence>
-        {feedback.length > 0 && (
-          <motion.div
-            key={feedback.join("-")}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-          >
-            <FeedbackPanel feedback={feedback} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <hr className="my-6 border-slate-300" />
       <PipelineSimulator trigger={pipelineTrigger} />
-      {showReflection && <ReflectionCard onSave={handleReflectionSave} />}
+
+      {/* Reflection Section*/}
+      {showReflection && (
+        <div className="mt-6 p-6 border border-blue-400 bg-blue-50 rounded-xl space-y-4">
+          <h2 className="text-lg font-semibold text-blue-700"> Final Reflection</h2>
+          <p className="text-sm text-slate-700">
+            Before completing <strong>{moduleData.title}</strong>, take a few minutes to reflect on what you’ve practiced:
+          </p>
+          <ul className="list-disc ml-5 text-sm text-slate-600 space-y-1">
+            <li>What caused the merge conflict and how did you resolve it?</li>
+            <li>How did Git branching and reviews improve collaboration?</li>
+            <li>What new insights do you have about Dockerfiles or build pipelines?</li>
+          </ul>
+
+          <textarea
+            className="w-full border rounded p-2 text-sm bg-white text-slate-800"
+            placeholder="Write your thoughts here..."
+            rows="4"
+            value={reflectionText}
+            onChange={(e) => setReflectionText(e.target.value)}
+          />
+
+          <div className="flex justify-end">
+            <Button
+              onClick={() => {
+                handleReflectionSave(reflectionText, moduleData.title);
+                setShowReflection(false);
+                addTerminalLog("🎓 Reflection saved! Module complete — next challenge unlocked.");
+                updateModuleProgress(moduleData.id);
+                setShowCompletionModal(true);
+              }}
+            >
+              Finish Module
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Module Complete Modal */}
+      {showCompletionModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-[90%] max-w-md text-center space-y-4">
+            <h2 className="text-xl font-semibold text-green-700">🎉 Module Complete!</h2>
+            <p className="text-slate-700 text-sm">
+              You’ve completed <strong>{moduleData.title}</strong>.<br />
+              The next module is now unlocked on your dashboard.
+            </p>
+            <Button
+              onClick={() => (window.location.href = "/")}
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+            >
+              Return to Dashboard
+            </Button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

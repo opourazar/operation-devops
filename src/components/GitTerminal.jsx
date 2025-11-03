@@ -31,6 +31,10 @@ export default function GitTerminal({ onAdvance }) {
     // Dynamic branch name parsing
     const branchMatch = cmd.match(/git\s+(?:checkout|switch)\s+(?:-b|-c)?\s*([\w\/.-]+)/);
     const branchName = branchMatch ? branchMatch[1] : "feature/fix-dockerfile";
+    // Persist branch name so GitOpsEditor can access it later
+    if (current.id === 1 && branchMatch) {
+      localStorage.setItem("branchName", branchName);
+    }
 
     if (matches) {
       let successMsg = current.success;
@@ -40,15 +44,15 @@ export default function GitTerminal({ onAdvance }) {
         successMsg = `🪄 Branch '${branchName}' created and switched.`;
       }
 
-      addLog(`✅ ${successMsg}`);
+      addLog(`${successMsg}`);
       if (current.learning_focus) {
-        addLog(`🧠 Learning Focus: ${current.learning_focus}`);
+        addLog(` Why? / What For?: ${current.learning_focus}`);
       }
 
       // If command involves opening the Dockerfile, move to editor view
       if (cmd.includes("open dockerfile") || cmd.includes("code dockerfile")) {
         addLog("📂 Opening Dockerfile in the editor...");
-        setTimeout(() => onAdvance("editor"), 1000); // tell parent to open editor
+        setTimeout(() => onAdvance("editor"), 1000);
         setInput("");
         return;
       }
@@ -67,7 +71,7 @@ export default function GitTerminal({ onAdvance }) {
       addLog(`💡 Hint: ${current.hint}`);
     } 
     else {
-      addLog(`❌ Unknown command. Type 'help' if you're stuck.`);
+      addLog(`💡 You need another command at this point. Type 'help' if you're stuck.`);
     }
 
     setInput("");
