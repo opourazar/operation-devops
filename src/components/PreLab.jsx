@@ -310,8 +310,8 @@ export default function PreLab({ moduleData, onContinue }) {
             transition={{ delay: 0.3 }}
             className="border-t border-slate-300 pt-3 text-sm text-slate-600 italic"
           >
-            📘 *Note:* This prelab phase covered only fundamentals needed for the lab challenge. There is so much more to learn. You can find some further reading materials on the{" "}
-            <strong>Student Dashboard</strong>.
+            📘 <strong>Note</strong>: This pre-lab phase covered only fundamentals needed for the lab challenge. There is so much more to learn. The links from the prelab are a good starting point. If you haven't taken a look at them, no worries, you can find them on the{" "}
+            <strong>Student Dashboard</strong> in the further reading section.
           </motion.div>
         )}
       </CardContent>

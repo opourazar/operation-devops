@@ -11,15 +11,15 @@ import { updateModuleProgress } from "@/lib/updateModuleProgress";
 
 export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance }) {
   const [code, setCode] = useState(`FROM node:18-alpine
-  WORKDIR /app
-  COPY . .
-  RUN npm install`);
+WORKDIR /app
+COPY . .
+RUN npm install`);
   const correctSolution = `FROM node:18-alpine
-  WORKDIR /app
-  COPY . .
-  RUN npm install
-  CMD ["node", "app.js"]
-  EXPOSE 80`;
+WORKDIR /app
+COPY . .
+RUN npm install
+CMD ["node", "app.js"]
+EXPOSE 80`;
   const [log, setLog] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [input, setInput] = useState("");
@@ -125,17 +125,21 @@ export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance }
 
     // handle "git commit"
     if (cmd.startsWith("git commit -m") && currentStep !== 7 && currentStep !== 9) {
-      const commitMsg = cmd.match(/git commit -m\s+["'](.+)["']/);
+      const commitMsgMatch = cmd.match(/git commit -m\s+["'](.+)["']/);
       if (!staged && !mergeConflict) {
       addTerminalLog("You must stage files first (use 'git add .').");
       setInput("");
       return;
-      } else {
-        if (commitMsg) setLastCommitMsg(commitMsg[1]);
-        handleCommit();
-        setStaged(false);
-        return;
+      } 
+      const commitMsg = commitMsgMatch ? commitMsgMatch[1] : null;
+
+      if (commitMsg) {
+        setLastCommitMsg(commitMsg);
       }
+
+      handleCommit(commitMsg);
+      setStaged(false);
+      return;
     }
 
     // handle "git push"
@@ -278,7 +282,7 @@ export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance }
   }
 
   // Commit logic
-  function handleCommit() {
+  function handleCommit(msgFromCmd) {
     // If resolving a conflict
     if (mergeConflict) {
       if (code.includes("<<<<<<<") || code.includes("=======") || code.includes(">>>>>>>")) {
@@ -297,13 +301,14 @@ export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance }
     }
 
     // Regular commit flow. Shows solution button if multiple failed attempts
+    const msg = msgFromCmd || lastCommitMsg || "fix: applied improvements";
     const nextAttempt = attemptCount + 1;
     setAttemptCount(nextAttempt);
     const fb = analyzeCode(code, nextAttempt);
     setFeedback(fb.feedback);
 
     if (fb.success) {
-      addTerminalLog(`Commit successful: "${lastCommitMsg || "fix: applied improvements"}"`);
+      addTerminalLog(`Commit successful: "${msg}"`);
       addTerminalLog("Great! Now push your branch to share changes.");
       setAttemptCount(0);
       setShowSolutionButton(false);
@@ -338,7 +343,7 @@ export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance }
 
     // Case 1: Dockerfile correct and port is 3000
     if (fb.success && exposePort === 3000) {
-      addTerminalLog("Leia: Perfect! All fixes verified. Merging your branch now...");
+      addTerminalLog("Ben: Perfect! All fixes verified. Merging your branch now...");
       setTimeout(() => {
         if (onAdvance) onAdvance(8);
         setCurrentStep(8);
@@ -432,7 +437,7 @@ export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance }
           }`}
         >
           <Editor
-            height="60vh"
+            height="30vh"
             language="dockerfile"
             theme="vs-dark"
             value={code}

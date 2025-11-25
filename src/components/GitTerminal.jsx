@@ -64,7 +64,7 @@ export default function GitTerminal({ onAdvance }) {
       // Open Dockerfile editor (Module 1)
       if (cmd.includes("open dockerfile") || cmd.includes("code dockerfile")) {
         addLog("📂 Opening Dockerfile in the editor...");
-        setTimeout(() => onAdvance(2), 2000);
+        setTimeout(() => onAdvance(3), 2000);
         setInput("");
         return;
       }
