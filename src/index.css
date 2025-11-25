@@ -129,6 +129,21 @@ button:focus-visible {
   }
 }
 
+.prose {
+  @apply text-foreground max-w-none;
+}
+
+.prose a {
+  @apply text-blue-600 no-underline hover:underline;
+}
+
+.prose pre {
+  @apply bg-slate-900 text-slate-100 p-3 rounded;
+}
+
+.prose code {
+  @apply text-slate-100 bg-slate-900 px-1 py-0.5 rounded;
+}
 
 
 @layer base {

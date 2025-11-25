@@ -4,11 +4,20 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
 
+function CodeBlock({ children }) {
+  return (
+    <pre className="p-3 bg-slate-900 text-slate-100 text-left rounded text-sm overflow-x-auto whitespace-pre">
+      {children}
+    </pre>
+  );
+}
+
 export default function PreLab({ moduleData, onContinue }) {
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState(null);
   const [quizFeedback, setQuizFeedback] = useState("");
   const [showDeepDive, setShowDeepDive] = useState(false);
+  const [isAnswerCorrect, setIsAnswerCorrect] = useState(false);
   const prelab = moduleData?.phases?.prelab;
 
   if (!prelab) return null;
@@ -16,8 +25,10 @@ export default function PreLab({ moduleData, onContinue }) {
   const isLastStep = step === prelab.activities.length - 1;
 
   function handleNext() {
-    if (current.type === "quiz" && !quizFeedback.startsWith("✅")) return;
+    // Only lock when a quiz is unanswered or incorrect
+    if (current.type === "quiz" && !isAnswerCorrect) return;
     if (step < prelab.activities.length - 1) {
+      setIsAnswerCorrect(false);
       setStep(step + 1);
       setSelected(null);
       setQuizFeedback("");
@@ -25,33 +36,16 @@ export default function PreLab({ moduleData, onContinue }) {
     } else onContinue();
   }
 
-  function handleAnswer(option) {
+  /** Unified quiz handler for both inline and standalone quizzes */
+  function handleAnswer(option, quizObj = current) {
     setSelected(option);
-    
-    const isCorrect = option === current.correct_answer;
+    const isCorrect = option === quizObj.correct_answer;
+    setIsAnswerCorrect(isCorrect);
 
     if (isCorrect) {
-      setQuizFeedback("✅ Correct! " + current.explanation);
+      setQuizFeedback("✅ Correct! " + quizObj.explanation);
     } else {
-      setQuizFeedback("❌ Not quite. " + current.explanation);
-
-      //adaptive branching: insert a remediation card dynamically
-      if (current.remediation) {
-        setTimeout(() => {
-          setStep(prev => {
-            const nextStep = {
-              type: "remediation_card",
-              title: "Quick Refresher",
-              content: current.remediation
-            };
-            const newActivities = [...prelab.activities];
-            newActivities.splice(prev + 1, 0, nextStep);
-            prelab.activities = newActivities;
-            return prev + 1;
-          });
-          setQuizFeedback("");
-        }, 1200);
-      }
+      setQuizFeedback("❌ Not quite. " + quizObj.explanation);
     }
   }
 
@@ -61,8 +55,8 @@ export default function PreLab({ moduleData, onContinue }) {
       <p className="text-sm text-gray-600">{prelab.description}</p>
 
       <CardContent className="space-y-6">
-        {/* Concept or Example */}
-        {(current.type === "concept_card" || current.type === "example_task") && (
+        {/* Concept card */}
+        {current.type === "concept_card" && (
           <motion.div
             key={`concept-${step}`}
             initial={{ opacity: 0, y: 10 }}
@@ -70,27 +64,83 @@ export default function PreLab({ moduleData, onContinue }) {
             transition={{ duration: 0.4 }}
             className="prose max-w-none text-gray-800 leading-relaxed"
           >
-            {current.type === "concept_card" && (
+            {/* Main Content */}
+            {current.content && (
               <ReactMarkdown>{current.content}</ReactMarkdown>
             )}
-            {current.type === "example_task" && (
-              <>
-                <p className="text-gray-800">{current.content}</p>
-                <pre className="p-3 bg-slate-900 text-slate-100 rounded text-sm overflow-x-auto">
-                  {current.example_code}
-                </pre>
-              </>
+
+            {/* Multiple Examples */}
+            {Array.isArray(current.examples) && current.examples.length > 0 && (
+              <div className="mt-4 space-y-3">
+                {current.examples.map((ex, idx) => (
+                  <div key={idx}>
+                    {ex.label && (
+                      <p className="font-medium text-gray-700">{ex.label}</p>
+                    )}
+                    {ex.code && (
+                      <div className="not-prose">
+                        <CodeBlock>{ex.code}</CodeBlock>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
 
-            {/* Optional Deep Dive */}
+            {/* Rendering for example_code field */}
+            {current.example_code && (
+              <div className="not-prose">
+                <CodeBlock>{current.example_code}</CodeBlock>
+              </div>
+            )}
+
+            {/* Inline Quiz */}
+            {current.quiz && (
+              <div className="mt-4 space-y-2">
+                <p className="font-medium text-gray-800">{current.quiz.question}</p>
+                {current.quiz.options.map((opt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleAnswer(opt, current.quiz)}
+                    className={`w-full text-left px-3 py-2 rounded border transition duration-200 bg-slate-50 text-slate-800 ${
+                      selected === opt
+                        ? opt === current.quiz.correct_answer
+                          ? "bg-green-200 border-green-400"
+                          : "bg-red-200 border-red-400"
+                        : "hover:bg-slate-100 border-slate-300"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+
+                {quizFeedback && (
+                  <div className="mt-2 text-sm">
+                    <p className={isAnswerCorrect ? "text-green-700" : "text-red-700"}>
+                      {quizFeedback}
+                    </p>
+
+                    {/* Remediation */}
+                    {!isAnswerCorrect && current.quiz.remediation && selected && (
+                      <div className="p-3 mt-2 bg-amber-50 border-l-4 border-amber-400 rounded text-amber-900 text-sm">
+                        💡 {current.quiz.remediation}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Deep Dive Block */}
             {current.deep_dive && (
-              <div className="mt-3">
+              <div className="mt-4">
                 <button
                   onClick={() => setShowDeepDive(!showDeepDive)}
                   className="text-blue-600 hover:underline text-sm font-medium"
                 >
                   {showDeepDive ? "Hide Deep Dive ▲" : "Show Deep Dive ▼"}
                 </button>
+
                 <AnimatePresence>
                   {showDeepDive && (
                     <motion.div
@@ -99,9 +149,41 @@ export default function PreLab({ moduleData, onContinue }) {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
                       transition={{ duration: 0.3 }}
-                      className="mt-2 p-3 border-l-4 border-blue-400 bg-blue-50 text-sm text-slate-700 rounded"
+                      className="mt-2 p-3 border-l-4 border-blue-400 bg-blue-50 text-sm text-slate-700 rounded space-y-2"
                     >
-                      <ReactMarkdown>{current.deep_dive}</ReactMarkdown>
+                      {/* If deep_dive is a string, treat as markdown */}
+                      {typeof current.deep_dive === "string" && (
+                        <ReactMarkdown>{current.deep_dive}</ReactMarkdown>
+                      )}
+
+                      {/* If deep_dive is object, render text + links */}
+                      {typeof current.deep_dive === "object" && (
+                        <>
+                          {current.deep_dive.text && (
+                            <ReactMarkdown>{current.deep_dive.text}</ReactMarkdown>
+                          )}
+                          {Array.isArray(current.deep_dive.links) &&
+                            current.deep_dive.links.length > 0 && (
+                              <ul className="space-y-1">
+                                {current.deep_dive.links.map((lnk, i) => (
+                                  <li key={i}>
+                                    <a
+                                      href={lnk.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-700 underline"
+                                    >
+                                      {lnk.label}
+                                    </a>
+                                    {lnk.note && (
+                                      <p className="text-xs text-slate-600">{lnk.note}</p>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                        </>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -110,7 +192,8 @@ export default function PreLab({ moduleData, onContinue }) {
           </motion.div>
         )}
 
-        {/* Quiz */}
+
+        {/* Standalone Quiz Cards */}
         {current.type === "quiz" && (
           <motion.div
             key={`quiz-${step}`}
@@ -125,11 +208,11 @@ export default function PreLab({ moduleData, onContinue }) {
                 <button
                   key={i}
                   onClick={() => handleAnswer(opt)}
-                  className={`w-full text-left px-3 py-2 rounded border transition duration-200 ${
+                  className={`w-full text-left px-3 py-2 rounded border transition duration-200 bg-slate-50 text-slate-800 ${
                     selected === opt
                       ? opt === current.correct_answer
-                        ? "bg-green-100 border-green-400"
-                        : "bg-red-100 border-red-400"
+                        ? "bg-green-200 border-green-400"
+                        : "bg-red-200 border-red-400"
                       : "hover:bg-slate-100 border-slate-300"
                   }`}
                 >
@@ -137,21 +220,33 @@ export default function PreLab({ moduleData, onContinue }) {
                 </button>
               ))}
             </div>
+
             {quizFeedback && (
-              <p
-                className={`text-sm ${
-                  quizFeedback.startsWith("✅")
-                    ? "text-green-700"
-                    : "text-red-700"
-                }`}
-              >
-                {quizFeedback}
-              </p>
+              <div className="mt-2 text-sm space-y-1">
+                <p
+                  className={
+                    isAnswerCorrect
+                      ? "text-green-700"
+                      : "text-red-700"
+                  }
+                >
+                  {quizFeedback}
+                </p>
+
+                {/* Remediation display */}
+                {!isAnswerCorrect &&
+                  current.remediation &&
+                  selected && (
+                    <div className="p-3 mt-2 bg-amber-50 border-l-4 border-amber-400 rounded text-amber-900 text-sm">
+                      💡 {current.remediation}
+                    </div>
+                  )}
+              </div>
             )}
           </motion.div>
         )}
 
-        {/* 🧩 Micro-Scenario */}
+        {/* Micro-Scenario */}
         {current.type === "micro_scenario" && (
           <motion.div
             key={`micro-${step}`}
@@ -161,20 +256,19 @@ export default function PreLab({ moduleData, onContinue }) {
             className="space-y-3"
           >
             <p className="font-medium text-gray-800">{current.scenario}</p>
-            <pre className="p-3 bg-slate-900 text-slate-100 rounded text-sm overflow-x-auto">
-              {current.context_code}
-            </pre>
-
+            <div className="not-prose">
+              <CodeBlock>{current.context_code}</CodeBlock>
+            </div>
             <div className="space-y-2">
               {current.options.map((opt, i) => (
                 <button
                   key={i}
                   onClick={() => handleAnswer(opt)}
-                  className={`w-full text-left px-3 py-2 rounded border transition duration-200 ${
+                  className={`w-full text-left px-3 py-2 rounded border transition duration-200 bg-slate-50 text-slate-800 ${
                     selected === opt
                       ? opt === current.correct_answer
-                        ? "bg-green-100 border-green-400"
-                        : "bg-red-100 border-red-400"
+                        ? "bg-green-200 border-green-400"
+                        : "bg-red-200 border-red-400"
                       : "hover:bg-slate-100 border-slate-300"
                   }`}
                 >
@@ -184,36 +278,31 @@ export default function PreLab({ moduleData, onContinue }) {
             </div>
 
             {quizFeedback && (
-              <p
-                className={`text-sm ${
-                  quizFeedback.startsWith("✅") ? "text-green-700" : "text-red-700"
-                }`}
-              >
-                {quizFeedback}
-              </p>
+              <div className="mt-2 text-sm space-y-1">
+                <p
+                  className={
+                    isAnswerCorrect
+                      ? "text-green-700"
+                      : "text-red-700"
+                  }
+                >
+                  {quizFeedback}
+                </p>
+
+                {/* Remediation display */}
+                {!isAnswerCorrect &&
+                  current.remediation &&
+                  selected && (
+                    <div className="p-3 mt-2 bg-amber-50 border-l-4 border-amber-400 rounded text-amber-900 text-sm">
+                      💡 {current.remediation}
+                    </div>
+                  )}
+              </div>
             )}
           </motion.div>
         )}
 
-        {/* 🧩 Remediation Card */}
-        {current.type === "remediation_card" && (
-          <motion.div
-            key={`rem-${step}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="p-4 bg-amber-50 border-l-4 border-amber-400 rounded space-y-2"
-          >
-            <h3 className="font-semibold text-amber-800">
-              {current.title || "Concept Refresher"}
-            </h3>
-            <p className="text-amber-900 text-sm leading-relaxed">
-              {current.content}
-            </p>
-          </motion.div>
-        )}
-
-        {/* Further Reading Hint*/}
+        {/* Further Reading Hint */}
         {isLastStep && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -221,7 +310,7 @@ export default function PreLab({ moduleData, onContinue }) {
             transition={{ delay: 0.3 }}
             className="border-t border-slate-300 pt-3 text-sm text-slate-600 italic"
           >
-            📘 *Note:* You can find further reading materials on the{" "}
+            📘 *Note:* This prelab phase covered only fundamentals needed for the lab challenge. There is so much more to learn. You can find some further reading materials on the{" "}
             <strong>Student Dashboard</strong>.
           </motion.div>
         )}
@@ -230,7 +319,7 @@ export default function PreLab({ moduleData, onContinue }) {
       <div className="flex justify-end">
         <Button
           onClick={handleNext}
-          disabled={current.type === "quiz" && !quizFeedback.startsWith("✅")}
+          disabled={current.type === "quiz" && !isAnswerCorrect}
         >
           {isLastStep ? "Start Challenge" : "Next"}
         </Button>
@@ -238,6 +327,3 @@ export default function PreLab({ moduleData, onContinue }) {
     </Card>
   );
 }
-
-
-

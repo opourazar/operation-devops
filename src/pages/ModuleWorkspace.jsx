@@ -2,14 +2,25 @@ import { useEffect, useState } from "react";
 import GitOpsEditor from "@/components/GitOpsEditor";
 import PreLab from "@/components/PreLab";
 import GitTerminal from "@/components/GitTerminal";
+import KubeEditor from "@/components/KubeEditor";
+import IaCEditor from "@/components/IaCEditor";
 import modulesData from "@/data/modules.json";
 import { scenarioScript } from "@/data/scenarioScript";
+import { scenarioScriptModule2 } from "@/data/scenarioScriptModule2";
+import { scenarioScriptModule3 } from "@/data/scenarioScriptModule3";
 
 export default function ModuleWorkspace() {
   const [moduleData, setModuleData] = useState(null);
   // prelab | terminal | editor
   const [stage, setStage] = useState("prelab");
   const [scenarioStep, setScenarioStep] = useState(1);
+  const activeModule = localStorage.getItem("activeModule");
+  const script =
+  activeModule === "module-3"
+    ? scenarioScriptModule3
+    : activeModule === "module-2"
+    ? scenarioScriptModule2
+    : scenarioScript;
   
   useEffect(() => {
     // Reset branch name on module start to avoid cross-module carryover
@@ -24,11 +35,15 @@ export default function ModuleWorkspace() {
   function handleAdvance(nextStepId) {
     setScenarioStep(nextStepId);
 
-    // transition logic, move from terminal to editor once dockerfile opened
-    if (nextStepId === 3) {
+    const openEditorSteps = {
+      "module-1": 3,
+      "module-2": 3,
+      "module-3": 3
+    };
+
+    if (nextStepId === openEditorSteps[activeModule]) {
       setStage("editor");
-    } else if (nextStepId > scenarioScript.length) {
-      // scenario complete — could trigger reflection or unlock next module
+    } else if (nextStepId > script.length) {
       console.log("🎓 Module complete!");
       setStage("complete");
     }
@@ -55,16 +70,24 @@ export default function ModuleWorkspace() {
 
       {stage === "terminal" && (
         <GitTerminal
-          onAdvance={() => handleAdvance(3)} // ✅ tell the handler to go to step 3
+          onAdvance={handleAdvance} 
         />
       )}
 
       {stage === "editor" && (
-        <GitOpsEditor
-          moduleData={moduleData}
-          scenarioStep={scenarioStep}
-          onAdvance={handleAdvance}
-        />
+        <>
+          {moduleData.id === "module-3" ? (
+            <IaCEditor moduleData={moduleData} onAdvance={handleAdvance} />
+          ) : moduleData.id === "module-2" ? (
+            <KubeEditor moduleData={moduleData} onAdvance={handleAdvance} />
+          ) : (
+            <GitOpsEditor
+              moduleData={moduleData}
+              scenarioStep={scenarioStep}
+              onAdvance={handleAdvance}
+            />
+          )}
+        </>
       )}
 
       {stage === "complete" && (

@@ -1,10 +1,9 @@
 [
   {
     "id": "module-1",
-    "title": "Containerization & GitOps Fundamentals",
+    "title": "GitOps Fundamentals & Containerization",
     "category": "DevOps Foundations",
     "difficulty": "Beginner",
-    "bloom_level": "Apply",
     "swebok_area": "Software Construction / Configuration Management",
     "status": "unlocked",
     "learning_objectives": [
@@ -14,34 +13,277 @@
     ],
     "phases": {
       "prelab": {
-        "title": "Concept Warm-up",
-        "description": "Review the basics of Git, version control, and Dockerfiles. Learn how these concepts support reproducibility in DevOps.",
+        "title": "In Git We Trust",
+        "description": "Review the basics of Git and version control. Find out about the role of Dockerfiles in Containerization. Learn how these concepts support reproducibility in DevOps.",
         "activities": [
           {
             "type": "concept_card",
-            "content": "### What is Git and Why DevOps Relies on It\nGit is a **distributed version control system** that tracks changes in source code. DevOps teams use it to manage collaboration, rollback errors, and automate continuous integration. Every change is a 'commit', and branches allow isolated work before merging."
+            "content": "### **What is Git and Why DevOps Relies on It**\nGit is a **distributed version control system** that stores snapshots of your code over time. Each snapshot (a *commit*) lets you return to previous states, experiment safely, or collaborate without overwriting each other.\n\nIn DevOps, Git is more than a backup tool — it serves as a **collaboration hub**, a **source of truth for automation**, and the **trigger point** for CI/CD workflows. Every change in your repository can automatically build, test, or deploy your application.",
+            "examples": [
+              {
+                "label": "Git tracks your work over time",
+                "code": "git commit -m \"feat: add login handler\""
+              },
+              {
+                "label": "Git enables collaboration without breaking main",
+                "code": "git checkout -b feature/login-ui"
+              }
+            ],
+            "deep_dive": {
+              "text": "### Deep Dive: Git in Real DevOps Pipelines\nModern DevOps pipelines treat Git as the **event engine**. When code changes, automation wakes up:\n- **GitHub Actions** starts workflows when you push.\n- **GitLab CI** rebuilds containers and runs tests on merge requests.\n- **Jenkins** triggers jobs through webhooks or periodic polling.\n- **ArgoCD / Flux** use Git commits as deployment instructions (GitOps).\n\nThis tight connection means that understanding Git is essential to understanding why your pipeline behaves the way it does — and how to debug it.",
+              "links": [
+                {
+                  "label": "Jenkins Git Plugin",
+                  "url": "https://plugins.jenkins.io/git/",
+                  "note": "How Jenkins listens for repository changes."
+                },
+                {
+                  "label": "GitHub Actions Basics",
+                  "url": "https://docs.github.com/actions",
+                  "note": "Introduction to workflow triggers and events."
+                }
+              ]
+            }
           },
           {
             "type": "concept_card",
-            "content": "### Common Git Commands\n- `git add`: Stage files for commit.\n- `git commit -m \"message\"`: Save staged changes with a message.\n- `git push`: Upload commits to a remote repository.\n- `git pull`: Fetch and merge remote updates.\n- `git merge`: Integrate changes from another branch.\n- `git checkout -b feature-name`: Create and switch to a new branch."
+            "content": "### **Common Git Commands Explained**\nThese are the **everyday Git commands** DevOps engineers use to record progress, isolate work, and collaborate effectively.\n\nUnderstanding these commands means you can confidently make changes in the challenge without breaking the repository.",
+            "examples": [
+              {
+                "label": "Stage and commit your work",
+                "code": "git add .\ngit commit -m \"feat: add API endpoint\""
+              },
+              {
+                "label": "Push your branch to share work with the team",
+                "code": "git push origin feature/auth"
+              },
+              {
+                "label": "Create and switch to a new branch",
+                "code": "git checkout -b fix/ui-bug"
+              }
+            ],
+            "deep_dive": {
+              "text": "### Deep Dive: How These Commands Influence CI\nGit commands are not just for code management — they **drive automation**:\n- Committing often helps you create *traceable checkpoints*.\n- Pushing to a branch **starts CI pipelines** in most DevOps setups.\n- Following good commit message practices improves debugging and auditability.\n- Branches make experimentation safe and prevent accidental deployment-breaking changes.",
+              "links": [
+                {
+                  "label": "Atlassian Git Guide",
+                  "url": "https://www.atlassian.com/git",
+                  "note": " Great visual explanations for what Git has to offer, including branching & merging."
+                },
+                {
+                  "label": "Conventional Commits",
+                  "url": "https://www.conventionalcommits.org",
+                  "note": "Why structured commit messages matter in DevOps automation."
+                }
+              ]
+            }
           },
           {
             "type": "concept_card",
-            "content": "A Dockerfile defines how your app runs. Each instruction builds a layer. Common instructions: FROM, WORKDIR, COPY, EXPOSE, CMD.",
-            "deep_dive": "### Deep Dive: Layer Caching\nEach Dockerfile instruction creates a new **image layer**. Reordering instructions can dramatically change build speed. For example, `COPY package.json .` before `RUN npm install` allows Docker to cache dependencies between builds."
+            "content": "### **Branches: Safe Spaces for Work in Progress**\nA Git branch is an isolated workspace where you write code without affecting `main`. DevOps teams rely on branches to experiment, build features, fix bugs, and collaborate safely.\n\nCommon branch types:\n- **feature/** – new functionality\n- **bugfix/** – fixes\n- **refactor/** – code quality changes\n- **hotfix/** – urgent patches to production",
+            "examples": [
+              {
+                "label": "Create a new feature branch",
+                "code": "git checkout -b feature/add-login"
+              },
+              {
+                "label": "Merge your feature back into main",
+                "code": "git checkout main\ngit merge feature/add-login"
+              }
+            ],
+            "quiz": {
+              "question": "Why do DevOps teams use feature branches instead of committing to main?",
+              "options": [
+                "To avoid breaking the main branch while working on changes",
+                "Because Git doesn't allow committing directly to main",
+                "Because branches make code run faster"
+              ],
+              "correct_answer": "To avoid breaking the main branch while working on changes",
+              "explanation": "We want to make our edits in a safe isolated branch first.",
+              "remediation": "Feature branches isolate incomplete work, preventing broken builds and enabling safe collaboration."
+            },
+            "deep_dive": {
+              "text": "### Branching Models in DevOps\nMost teams adopt one of the following:\n- **GitHub Flow**: main is always deployable; short-lived feature branches.\n- **GitLab Flow**: adds environment branches like `staging` or `production`.\n- **Trunk-Based Development**: frequent merges to main; heavy automation.\n\nModern CI/CD systems assume a branching strategy — e.g., pull requests trigger pipelines, branch names determine environments, and merge events deploy code.",
+              "links": [
+                {
+                  "label": "Understanding GitHub Flow",
+                  "url": "https://docs.github.com/get-started/quickstart/github-flow",
+                  "note": "Short-lived branch workflow for fast dev teams."
+                }
+              ]
+            }
           },
           {
-            "type": "example_task",
-            "content": "Your team’s CI pipeline reports: “Error: no command specified to run the app.” Examine this Dockerfile — what’s causing the failure?",
-            "example_code": "FROM node:18-alpine\nWORKDIR /app\nCOPY . .\nRUN npm install\n# The Dockerfile builds successfully, but the container exits immediately on start.\n# What’s missing?"
+            "type": "concept_card",
+            "content": "### **Commits: The Story of Your Code**\nA commit is a snapshot of your project. In DevOps, commit quality affects:\n- Debugging\n- Code review\n- CI/CD traceability\n- Deployment logs\n\nA good commit message describes **what changed** and **why**.",
+            "examples": [
+              {
+                "label": "Conventional commit format",
+                "code": "git commit -m \"feat(auth): add JWT token validation\""
+              },
+              {
+                "label": "Bad commit message (avoid)",
+                "code": "git commit -m \"fix stuff\""
+              }
+            ],
+            "quiz": {
+              "question": "Which commit message is clearer for DevOps automation?",
+              "options": [
+                "\"fix stuff\"",
+                "\"feat(ui): add loading spinner for login button\"",
+                "\"update file\""
+              ],
+              "correct_answer": "\"feat(ui): add loading spinner for login button\"",
+              "explanation": "We want to be help reviewers/collaborators understand what changes were made.",
+              "remediation": "Conventional commits help tooling, automation, and teammates understand changes."
+            },
+            "deep_dive": {
+              "text": "### Deep Dive: How Commit Messages Affect Pipelines\nSome DevOps pipelines parse commit messages to:\n- Generate changelogs\n- Trigger semantic versioning\n- Decide deployment channels\n\nTools like Semantic Release or GitVersion automate version bumps based on commit types.",
+              "links": [
+                {
+                  "label": "Conventional Commits Standard",
+                  "url": "https://www.conventionalcommits.org",
+                  "note": "A structured approach to meaningful commits."
+                }
+              ]
+            }
+          },
+          {
+            "type": "concept_card",
+            "content": "### **Pull Requests (PRs): Collaboration + Quality Gates**\nA pull request is a proposal to merge code from one branch to another. PRs create a checkpoint where the team reviews code, tests automation, and ensures standards are met.",
+            "examples": [
+              {
+                "label": "Creating a new PR (GitHub CLI)",
+                "code": "gh pr create --title \"Add login UI\" --body \"Implements responsive layout\""
+              },
+              {
+                "label": "Fetching PR locally for testing",
+                "code": "git fetch origin pull/42/head:pr-42"
+              }
+            ],
+            "quiz": {
+              "question": "What is the main purpose of a pull request?",
+              "options": [
+                "To merge without anyone seeing your code",
+                "To review and validate changes before merging",
+                "To automatically delete a branch"
+              ],
+              "correct_answer": "To review and validate changes before merging",
+              "explanation": "We ask first before we push code changes.",
+              "remediation": "PRs act as quality gates: automation and teammates verify correctness before the merge."
+            },
+            "deep_dive": {
+              "text": "### How PRs Fit Into DevOps\nPRs often trigger:\n- CI pipelines (tests, build, lint)\n- Security scans (SAST)\n- Dependency checks\n- Preview environments (e.g., Vercel, Netlify, Okteto)\n\nMerging a PR into main often triggers deployment pipelines.",
+              "links": [
+                {
+                  "label": "GitHub Pull Request Documentation",
+                  "url": "https://docs.github.com/pull-requests",
+                  "note": "Full overview of PR features."
+                }
+              ]
+            }
+          },
+          {
+            "type": "concept_card",
+            "content": "### **Fixing Mistakes Without Fear**\nGit provides tools for dealing with accidents:\n- `git stash` temporarily shelves changes\n- `git revert` safely undoes commits\n- `git reset` modifies history (use with caution)\n\nThese commands give developers confidence to experiment.",
+            "examples": [
+              {
+                "label": "Shelf uncommitted work",
+                "code": "git stash"
+              },
+              {
+                "label": "Undo a commit without rewriting history",
+                "code": "git revert c3f9147"
+              }
+            ],
+            "quiz": {
+              "question": "Which Git command is safest for undoing a public commit?",
+              "options": [
+                "`git revert`",
+                "`git reset --hard HEAD~1`",
+                "`git stash drop`"
+              ],
+              "correct_answer": "`git revert`",
+              "explanation": "We want safely undo commits.",
+              "remediation": "`git revert` creates a new commit that undoes changes — no history rewriting."
+            },
+            "deep_dive": {
+              "text": "### Deep Dive: Reset vs Revert\n- **Revert** is safe: creates a new commit.\n- **Reset** rewrites history: dangerous on shared branches.\n\nMost DevOps teams lock `main` specifically to prevent risky history changes.",
+              "links": []
+            }
           },
           {
             "type": "quiz",
-            "question": "Looking at the Dockerfile above, what key instruction is missing that causes the container to exit immediately after build?",
-            "options": ["WORKDIR", "RUN", "CMD", "EXPOSE"],
-            "correct_answer": "CMD",
-            "explanation": "The Dockerfile builds but doesn’t know how to start the app. The CMD instruction defines what runs when the container starts.",
-            "remediation": "Without CMD, Docker containers exit immediately after creation. For example: CMD [\"node\", \"server.js\"]"
+            "question": "What must you always do before running `git commit -m`?",
+            "options": [
+              "git merge main",
+              "git fetch",
+              "git add .",
+              "git switch main"
+            ],
+            "correct_answer": "git add .",
+            "explanation": "Git commits only what is staged.",
+            "remediation": "Use 'git add .' or stage individual files to prepare changes for committing."
+          },
+          {
+            "type": "quiz",
+            "question": "What happens after you push changes to a feature branch?",
+            "options": [
+              "The branch is automatically merged",
+              "Your PR updates and triggers CI checks",
+              "Git deletes the branch",
+              "Nothing happens"
+            ],
+            "correct_answer": "Your PR updates and triggers CI checks",
+            "explanation": "Most platforms run CI and refresh the PR automatically.",
+            "remediation": "Make sure changes are pushed to the correct remote branch."
+          },
+          {
+            "type": "concept_card",
+            "content": "### **Understanding a Dockerfile**\nA Dockerfile is a **recipe** for building a reproducible application environment. Each instruction adds a *layer*. Layers help Docker reuse work between builds, but they also influence speed and determinism.\n\nIn the lab, you will modify a Dockerfile. Understanding the purpose behind each instruction will help you debug build errors and optimize your image.",
+            "examples": [
+              {
+                "label": "Example: Node.js Dockerfile",
+                "code": "FROM node:18-alpine\nWORKDIR /app\nCOPY . .\nRUN npm install\nEXPOSE 3000\nCMD [\"node\", \"server.js\"]"
+              }
+            ],
+            "deep_dive": {
+              "text": "### Deep Dive: Layer Caching & Why Order Matters\nDocker builds images by executing instructions **from top to bottom**, caching each layer. Changing an early line forces all later layers to rebuild — slowing down CI.\n\nGood Dockerfiles:\n- Separate dependency installation from application code.\n- Minimize layers.\n- Put slow steps (like `npm install`) after stable ones.\n",
+              "links": [
+                {
+                  "label": "Dockerfile Best Practices",
+                  "url": "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/",
+                  "note": "How to structure efficient images."
+                },
+                {
+                  "label": "Understanding Docker Layers",
+                  "url": "https://docs.docker.com/storage/storagedriver/",
+                  "note": "Every instruction creates a cached layer."
+                }
+              ]
+            }
+          },
+          {
+            "type": "concept_card",
+            "content": "### **Why Your Container Exits Immediately**\nImagine your CI pipeline reports: *“Error: no command specified to run the app.”* This usually means the container started — and then had nothing to execute.",
+            "example_code": "FROM node:18-alpine\nWORKDIR /app\nCOPY . .\nRUN npm install\nEXPOSE 8080",
+            "quiz": {
+              "question": "Which instruction is missing and causes the container to exit immediately?",
+              "options": ["WORKDIR", "RUN", "CMD", "EXPOSE"],
+              "correct_answer": "CMD",
+              "explanation": "Docker containers exit when the main process ends. Without CMD, there's no long-running process to keep the container alive.",
+              "remediation": "Add a startup instruction, such as:\n```dockerfile\nCMD [\"node\", \"server.js\"]\n```"
+            },
+            "deep_dive": {
+              "text": "### Deep Dive: How CMD Works\n- **CMD defines the default startup command.**\n- It runs every time the container starts.\n- Without it, Docker starts the base image's default process (often nothing), causing immediate exit.\n\nUnderstanding CMD will help you debug the Dockerfile in the upcoming lab challenge.",
+              "links": [
+                {
+                  "label": "Docker CMD vs ENTRYPOINT",
+                  "url": "https://docs.docker.com/engine/reference/builder/#cmd",
+                  "note": "The difference between setting defaults and forced commands."
+                }
+              ]
+            }
           },
           {
             "type": "quiz",
@@ -52,7 +294,8 @@
               "It removes the need for CMD."
             ],
             "correct_answer": "It ensures files are placed in the correct context.",
-            "explanation": "WORKDIR provides a clean and predictable context for subsequent Dockerfile instructions."
+            "explanation": "WORKDIR provides a clean and predictable context for subsequent Dockerfile instructions.",
+            "remediation": "If you don't set WORKDIR, your COPY and RUN commands may run in unexpected paths—leading to broken builds or misplaced files."
           },
           {
             "type": "micro_scenario",
@@ -69,17 +312,17 @@
             "remediation": "If you forgot, `git checkout -b <branch>` both creates and switches to a new branch — ideal for feature development."
           },
           {
-            "type": "resources",
-            "links": [
-              {
-                "label": "Dockerfile Best Practices (Docker Docs)",
-                "url": "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/"
-              },
-              {
-                "label": "Git Branching Model (Atlassian)",
-                "url": "https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow"
-              }
-            ]
+            "type": "quiz",
+            "question": "What does the line `=======` represent in a merge conflict?",
+            "options": [
+              "The beginning of main branch changes",
+              "The divider between your changes and incoming changes",
+              "The end of your changes",
+              "A Git warning"
+            ],
+            "correct_answer": "The divider between your changes and incoming changes",
+            "explanation": "`=======` separates your version (HEAD) from the other branch.",
+            "remediation": "In a conflict block, HEAD is above the divider; incoming changes are below it."
           }
         ]
       },
@@ -95,16 +338,58 @@
       "postlab": {
         "title": "Reflect and Extend",
         "reflection_prompts": [
-          "What caused the initial build failure?",
+          "Can you describe the concept of containers?",
+          "Why do we need Dockerfiles for containerization?",
+          "What where the initial causes for the wrong build outcomes?",
           "How did branching protect your main codebase?",
-          "What did you learn about handling merge conflicts or reviews?",
-          "Which Dockerfile instruction was most critical to success?",
+          "How did Git branching and reviews improve collaboration?",
+          "What caused the merge conflict and how did you resolve it?",
           "How does GitOps ensure reproducibility and transparency?"
         ],
         "further_resources": [
           {
+            "label": "Jenkins Git Plugin",
+            "url": "https://plugins.jenkins.io/git/"
+          },
+          {
+            "label": "GitHub Actions Basics",
+            "url": "https://docs.github.com/actions"
+          },
+          {
             "label": "Dockerfile Best Practices (Docker Docs)",
             "url": "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/"
+          },
+          {
+            "label": "Atlassian Git Guide",
+            "url": "https://www.atlassian.com/git"
+          },
+          {
+            "label": "Conventional Commits",
+            "url": "https://www.conventionalcommits.org"
+          },
+          {
+            "label": "GitHub Flow Explained",
+            "url": "https://docs.github.com/get-started/quickstart/github-flow"
+          },
+          {
+            "label": "Dockerfile Best Practices",
+            "url": "https://docs.docker.com/develop/develop-images/dockerfile_best-practices/"
+          },
+          {
+            "label": "GitHub Pull Request Documentation",
+            "url": "https://docs.github.com/pull-requests"
+          },
+          {
+            "label": "Understanding Docker Layers",
+            "url": "https://docs.docker.com/storage/storagedriver/"
+          },
+          {
+            "label": "Docker CMD vs ENTRYPOINT",
+            "url": "https://docs.docker.com/engine/reference/builder/#cmd"
+          },
+          {
+            "label": "Git Branching Model (Atlassian)",
+            "url": "https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow"
           },
           {
             "label": "Resolving Merge Conflicts (GitHub Docs)",
@@ -120,78 +405,275 @@
     "title": "Container Orchestration & CI/CD Automation",
     "category": "Automation & Scaling",
     "difficulty": "Intermediate",
-    "bloom_level": "Analyze",
-    "swebok_area": "Software Engineering Management / Infrastructure",
+    "swebok_area": "Software Engineering Models & Methods / Deployment",
     "status": "locked",
     "learning_objectives": [
-      "Understand Kubernetes architecture and workflow.",
-      "Deploy and scale applications with YAML manifests.",
-      "Analyze CI/CD pipelines and identify orchestration issues."
+      "Understand and apply Kubernetes declarative configuration principles.",
+      "Read, analyze, and correct Deployment and Service manifests.",
+      "Troubleshoot scaling issues in containerized applications.",
+      "Use CI/CD feedback to validate and improve Kubernetes manifests.",
+      "Connect orchestration concepts with DevOps automation workflows."
     ],
     "phases": {
       "prelab": {
-        "title": "Orchestration Primer",
-        "description": "Learn how Kubernetes automates deployment and scaling.",
+        "title": "Foundations of Kubernetes Deployments & Services",
+        "description": "Explore the core building blocks of Pods, Deployments, Services, labels, selectors, and scaling. This warm-up ensures you can confidently read, interpret, and correct YAML configuration, skills you’ll apply in the scenario challenge.",
         "activities": [
           {
             "type": "concept_card",
-            "content": "In Kubernetes, a Deployment manages pods and ensures desired state. Common objects: Pod, Service, Deployment, ReplicaSet."
+            "content": "### Declarative Model: Desired vs Actual State\nKubernetes operates on a **declarative configuration model**. You describe the *desired state* in YAML — how many Pods should run, which image they use, which ports they expose, and which labels they carry. Kubernetes continuously works to match reality to this desired state.\n\nIf something drifts (e.g., a crashed Pod), the system automatically corrects it.",
+            "examples": [
+              {
+                "label": "Example: Declaring desired state",
+                "code": "spec:\n  replicas: 3\n  template:\n    spec:\n      containers:\n      - name: api\n        image: node:18"
+              }
+            ],
+            "deep_dive": {
+              "text": "### Deep Dive: Reconciliation Loop\nThe Deployment controller repeatedly checks for differences between **desired** and **actual** state. This is why Kubernetes is resilient — it self-heals.\n\nYou can inspect applied state using:\n- `kubectl get deployment web`\n- `kubectl describe deployment web`\n- `kubectl get rs` (to inspect ReplicaSets)\n\nTools like **Lens**, **k9s**, or GitOps systems like **Argo CD** visualize this loop.",
+              "links": [
+                {
+                  "label": "Reconciliation Explained",
+                  "url": "https://kubernetes.io/docs/concepts/architecture/controller/"
+                },
+                {
+                  "label": "Argo CD GitOps Workflow",
+                  "url": "https://argo-cd.readthedocs.io/"
+                }
+              ]
+            }
           },
           {
-            "type": "example_task",
-            "content": "Spot the error: Why won’t this Deployment create pods?",
-            "example_code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\nspec:\n  template:\n    spec:\n      containers:\n        - name: web\n          image: nginx"
+            "type": "concept_card",
+            "content": "### Anatomy of a Deployment\nA Deployment defines how Pods should run. Three fields must align:\n- **replicas** — how many Pods should exist\n- **selector** — which Pods belong to this Deployment\n- **template** — the Pod definition, including labels and containers",
+            "examples": [
+              {
+                "label": "Correct Deployment",
+                "code": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: web\n  template:\n    metadata:\n      labels:\n        app: web\n    spec:\n      containers:\n        - name: web\n          image: nginx:1.25\n          ports:\n          - containerPort: 3000"
+              },
+              {
+                "label": "Incorrect (selector missing)",
+                "code": "spec:\n  replicas: 3\n  template:\n    metadata:\n      labels:\n        app: web"
+              },
+              {
+                "label": "Incorrect (labels mismatch)",
+                "code": "selector:\n  matchLabels:\n    app: backend\n\ntemplate:\n  metadata:\n    labels:\n      app: web"
+              }
+            ],
+            "deep_dive": {
+              "text": "### Deep Dive: Deployment Controller\nThe Deployment controller manages ReplicaSets and ensures the correct number of Pods are running.\n\nIt also handles **rolling updates**, which let you upgrade containers with minimal downtime.\n\nUseful commands:\n- `kubectl rollout status deployment/web`\n- `kubectl rollout history deployment/web`\n- `kubectl rollout undo deployment/web`",
+              "links": [
+                {
+                  "label": "Deployment Best Practices",
+                  "url": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+                },
+                {
+                  "label": "Rolling Update Strategies",
+                  "url": "https://kubernetes.io/docs/tutorials/kubernetes-basics/update/update-intro/"
+                }
+              ]
+            }
+          },
+          {
+            "type": "concept_card",
+            "content": "### Labels & Selectors: The Glue of Kubernetes\nLabels are key-value pairs attached to Pods. Selectors let Deployments and Services *find* the Pods they should manage.\n\nIf labels and selectors do not match **exactly**, scaling and routing break.",
+            "examples": [
+              {
+                "label": "Matching labels and selectors",
+                "code": "selector:\n  matchLabels:\n    app: api\n\ntemplate:\n  metadata:\n    labels:\n      app: api"
+              },
+              {
+                "label": "Partial mismatch (invalid)",
+                "code": "selector:\n  matchLabels:\n    app: api\n    tier: backend\n\ntemplate:\n  metadata:\n    labels:\n      app: api"
+              }
+            ],
+            "deep_dive": {
+              "text": "### Deep Dive: Why Exact Matches Matter\nSelectors must match labels **1:1**. They are the foundation for:\n- Deployments scaling Pods\n- Services routing traffic\n- Horizontal Pod Autoscaling (HPA)\n- Canary rollouts and blue/green deployments",
+              "links": [
+                {
+                  "label": "Labels & Selectors",
+                  "url": "https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/"
+                },
+                {
+                  "label": "Kubernetes Patterns — Labeling",
+                  "url": "https://k8spatterns.io/"
+                }
+              ]
+            }
           },
           {
             "type": "quiz",
-            "question": "Which field ensures that a Deployment knows how many pods to maintain?",
-            "options": ["metadata", "replicas", "apiVersion", "containers"],
-            "correct_answer": "replicas",
-            "explanation": "The replicas field tells Kubernetes how many pod instances should be running."
+            "question": "Which field allows a Deployment to know *which* Pods it manages?",
+            "options": ["replicas", "selector", "template", "containers"],
+            "correct_answer": "selector",
+            "explanation": "The selector links the Deployment to the correct Pods based on labels.",
+            "remediation": "Check that `spec.selector.matchLabels` exactly matches `template.metadata.labels`."
           },
           {
-            "type": "resources",
-            "links": [
+            "type": "concept_card",
+            "content": "### Services: Connecting Traffic to Pods\nA Kubernetes Service exposes your application inside (or outside) the cluster.\nIt selects target Pods using **label selectors** and routes traffic to matching Pods.\n\nPort fields to know:\n- **port** → The port exposed by the Service\n- **targetPort** → The port inside the container\n- **nodePort** (optional) → The port on the node",
+            "examples": [
               {
-                "label": "Kubernetes Basics (Interactive)",
-                "url": "https://kubernetes.io/docs/tutorials/kubernetes-basics/"
+                "label": "Correct Service → Deployment pair",
+                "code": "apiVersion: v1\nkind: Service\nmetadata:\n  name: web\nspec:\n  selector:\n    app: web\n  ports:\n    - port: 80\n      targetPort: 3000"
               },
               {
-                "label": "GitOps & Continuous Delivery with Argo CD",
-                "url": "https://argo-cd.readthedocs.io/en/stable/"
+                "label": "Incorrect (selector mismatch)",
+                "code": "# Inside Service\nspec:\n  selector:\n    app: backend\n\n# Inside Deployment\nlabels:\n  template:\n    metadata:\n      labels:\n        app: web"
               },
               {
-                "label": "Kubernetes Patterns – Reusable Elements for Design",
-                "url": "https://k8spatterns.io/"
+                "label": "Incorrect (missing targetPort)",
+                "code": "spec:\n  selector:\n    app: web\n  ports:\n  - port: 80"
               }
-            ]
+            ],
+            "deep_dive": {
+              "text": "### Deep Dive: Debugging Services\nCommon debugging commands:\n- `kubectl get svc web`\n- `kubectl get endpoints web`\n- `kubectl describe svc web`\n- `kubectl port-forward deployment/web 8080:3000`\n\nIf `endpoints` is empty, the selector is wrong.",
+              "links": [
+                {
+                  "label": "Service Concepts",
+                  "url": "https://kubernetes.io/docs/concepts/services-networking/service/"
+                }
+              ]
+            }
+          },
+          {
+            "type": "concept_card",
+            "content": "### Quick Check: Port Behavior",
+            "quiz": {
+              "question": "What happens if you omit `containerPort` in your Pod spec?",
+              "options": [
+                "The container won't start",
+                "The Service may not route traffic correctly",
+                "Kubernetes chooses a random port automatically",
+                "The Deployment will fail"
+              ],
+              "correct_answer": "The Service may not route traffic correctly",
+              "explanation": "`containerPort` helps configure Services and probes accurately.",
+              "remediation": "Add `ports: - containerPort: <number>` to your container spec."
+            }
+          },
+          {
+            "type": "concept_card",
+            "content": "### Replicas & Scaling\nThe `replicas` field specifies how many Pods Kubernetes should run.\nScaling down to 0 is valid — but it means your app will be offline.",
+            "deep_dive": {
+              "text": "### Deep Dive: Scaling Behavior\nScaling is immediate:\n- Increasing replicas → new Pods created\n- Decreasing replicas → older Pods removed\n\nTools like the **Horizontal Pod Autoscaler (HPA)** adjust replicas automatically based on CPU or custom metrics.",
+              "links": [
+                {
+                  "label": "Scaling Workloads",
+                  "url": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#scaling-a-deployment"
+                }
+              ]
+            }
+          },
+          {
+            "type": "micro_scenario",
+            "scenario": "### Your Deployment shows 0/3 Pods running. Investigate the snippet:",
+            "context_code": "selector:\n  matchLabels:\n    app: backend\n\ntemplate:\n  metadata:\n    labels:\n      app: web",
+            "options": ["Missing container image", "Replica count too low", "Label mismatch", "Wrong API version"],
+            "correct_answer": "Label mismatch",
+            "explanation": "The Deployment cannot match its Pods with the incorrect label.",
+            "remediation": "Ensure selectors exactly match template.metadata.labels."
+          },
+          {
+            "type": "micro_scenario",
+            "scenario": "### Your Service is not reaching any Pods. What’s wrong?",
+            "context_code": "apiVersion: v1\nkind: Service\nspec:\n  selector:\n    app: api\n  ports:\n  - port: 80\n    targetPort: 3000\n\n# Deployment labels:\ntemplate:\n  metadata:\n    labels:\n      app: web",
+            "options": ["Service port is wrong", "Selector is incorrect", "Deployment uses the wrong containerPort", "Service type must be NodePort"],
+            "correct_answer": "Selector is incorrect",
+            "explanation": "The Service selector must match the Pod labels, or no endpoints will be created.",
+            "remediation": "Run `kubectl get endpoints web` — if empty, fix your selector."
+          },
+          {
+            "type": "concept_card",
+            "content": "### CI/CD Meets Kubernetes\nModern DevOps pipelines validate, lint, and test Kubernetes YAML before applying it.\nThis catches configuration errors early.",
+            "deep_dive": {
+              "text": "### Common CI/CD Checks\nPipelines often run:\n- `kubectl apply --dry-run=client` (syntax checks)\n- `kubeval` or `kubeconform` (schema validation)\n- Deployment test stages\n- Canaries and smoke tests\n\nGitOps tools (Argo CD, Flux) continuously compare Git state to cluster state.",
+              "links": [
+                {
+                  "label": "GitHub Actions → Deploy to Kubernetes",
+                  "url": "https://docs.github.com/en/actions/deployment/deploying-to-kubernetes"
+                },
+                {
+                  "label": "kubeval Validator",
+                  "url": "https://www.kubeval.com/"
+                }
+              ]
+            }
+          },
+          {
+            "type": "quiz",
+            "question": "Where is Kubernetes YAML typically validated in a DevOps workflow?",
+            "options": [
+              "Only when applied to the cluster",
+              "Inside the CI/CD pipeline",
+              "During container build",
+              "After rollout"
+            ],
+            "correct_answer": "Inside the CI/CD pipeline",
+            "explanation": "Validation tools run before manifests reach the cluster.",
+            "remediation": "Pipelines commonly use kubeval, kubectl dry-run, or schema checks."
           }
         ]
       },
       "lab": {
         "title": "Scenario Challenge",
-        "scenario_prompt": "Your Deployment fails to roll out. Fix the YAML so that Kubernetes deploys the application successfully.",
+        "scenario_prompt": "Your team’s Kubernetes deployment isn’t scaling as expected. Fix the YAML to meet performance requirements and redeploy.",
         "code_language": "yaml",
-        "feedback_logic": "analyzeDeployment",
-        "success_condition": "contains apiVersion, kind, metadata, spec, containers",
-        "story_context": "Your CI/CD pipeline failed due to an invalid manifest. The team depends on you to restore service uptime.",
-        "collaboration_hint": "Ops lead says: 'The Deployment might not have replicas or labels set properly.'"
+        "feedback_logic": "analyzeKubeConfig",
+        "story_context": "You’re now working in a multi-service environment. The web service should autoscale under load, but the deployment manifest doesn’t define replicas or exposed ports. Fix and redeploy it.",
+        "collaboration_hint": "A teammate suggests: 'Check the replicas field and make sure your service exposes port 3000.'"
       },
       "postlab": {
         "title": "Reflect and Extend",
         "reflection_prompts": [
-          "What caused the deployment error?",
-          "How does orchestration reduce manual intervention?",
-          "What metrics could you monitor to verify successful rollout?"
+          "How did Kubernetes’ reconciliation loop help you identify or verify the root cause in this debugging scenario?",
+          "Which misconfiguration caused your Deployment or Service to fail (labels, selectors, containerPort, targetPort), and how did you trace the issue?",
+          "In your own words, why must labels and selectors match exactly for Kubernetes Deployments and Services to function properly?",
+          "How did CI/CD feedback or validation steps help you detect configuration errors before applying the manifest?"
         ],
         "further_resources": [
+          {
+            "label": "Reconciliation Explained",
+            "url": "https://kubernetes.io/docs/concepts/architecture/controller/"
+          },
+          {
+            "label": "Argo CD GitOps Workflow",
+            "url": "https://argo-cd.readthedocs.io/"
+          },
+          {
+            "label": "Deployment Best Practices",
+            "url": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"
+          },
+          {
+            "label": "Rolling Update Strategies",
+            "url": "https://kubernetes.io/docs/tutorials/kubernetes-basics/update/update-intro/"
+          },
+          {
+            "label": "Labels & Selectors",
+            "url": "https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/"
+          },
+          {
+            "label": "Kubernetes Patterns — Labeling",
+            "url": "https://k8spatterns.io/"
+          },
           {
             "label": "Kubernetes Basics (Interactive)",
             "url": "https://kubernetes.io/docs/tutorials/kubernetes-basics/"
           },
           {
-            "label": "GitOps & Continuous Delivery with Argo CD",
-            "url": "https://argo-cd.readthedocs.io/en/stable/"
+            "label": "Service Concepts",
+            "url": "https://kubernetes.io/docs/concepts/services-networking/service/"
+          },
+          {
+            "label": "Scaling Workloads",
+            "url": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#scaling-a-deployment"
+          },
+          {
+            "label": "GitHub Actions → Deploy to Kubernetes",
+            "url": "https://docs.github.com/en/actions/deployment/deploying-to-kubernetes"
+          },
+          {
+            "label": "kubeval Validator",
+            "url": "https://www.kubeval.com/"
           }
         ]
       }
@@ -203,78 +685,346 @@
     "title": "Cloud Deployment & Monitoring",
     "category": "Continuous Delivery & Cloud Integration",
     "difficulty": "Advanced",
-    "bloom_level": "Evaluate",
     "swebok_area": "Software Engineering Management / Deployment / Maintenance",
     "status": "locked",
     "learning_objectives": [
-      "Apply Infrastructure as Code principles with Helm or Terraform.",
+      "Apply Infrastructure as Code (IaC) principles using Terraform and Helm.",
       "Evaluate trade-offs between cost, scalability, and reliability.",
-      "Monitor deployments and analyze logs to improve DevOps performance."
+      "Monitor and interpret system metrics and logs to diagnose issues.",
+      "Integrate observability data into deployment decision-making.",
+      "Reflect on sustainability, cost, and security implications in cloud operations."
     ],
     "phases": {
       "prelab": {
-        "title": "Infrastructure as Code Overview",
-        "description": "Explore how IaC automates infrastructure provisioning and versioning.",
+        "title": "From Infrastructure to Observability",
+        "description": "Learn how declarative Infrastructure-as-Code, validation, cost analysis, and monitoring form an iterative DevOps workflow — and prepare yourself to debug and optimize Terraform configurations in the lab.",
         "activities": [
           {
             "type": "concept_card",
-            "content": "Infrastructure as Code allows managing servers and configurations declaratively. Common tools: Terraform, Helm, Ansible."
+            "bloom_level": "Understand",
+            "content": "### Declarative IaC: Defining Infrastructure as Code\nInfrastructure as Code (IaC) lets teams define cloud infrastructure **declaratively**, describing *what* the system should look like rather than scripting step-by-step instructions.\n\nTools like **Terraform**, **Pulumi**, and **Ansible** allow:\n- Reproducible environments\n- Version-controlled infrastructure\n- Consistent deployments across teams\n- Automated review and testing before changes reach production",
+            "deep_dive": {
+              "text": "### Why Declarative IaC Matters\nDeclarative files help teams avoid configuration drift and enable GitOps practices, where the Git repository becomes the single source of truth. CI/CD systems can validate and preview changes automatically.\n ### Declarative vs Imperative IaC\nDeclarative IaC describes the desired state, while imperative scripts specify step-by-step execution.\n\nBenefits of declarative IaC:\n- Predictable and reviewable deployments\n- Easier to validate and audit\n- GitOps workflows integrate naturally\n\nTerraform, Pulumi, and Kubernetes manifests all follow declarative principles.",
+              "links": [
+                { 
+                  "label": "Terraform: Declarative Configuration", 
+                  "url": "https://developer.hashicorp.com/terraform/docs" 
+                }
+              ]
+            }
           },
           {
-            "type": "example_task",
-            "content": "Review this Terraform snippet — what’s missing to create an instance?",
-            "example_code": "resource \"aws_instance\" \"web\" {\n  ami = \"ami-12345\"\n  # Missing instance_type!"
+            "type": "concept_card",
+            "bloom_level": "Understand",
+            "content": "### The Terraform Reasoning Loop\nBefore applying infrastructure, Terraform encourages a clear thinking pattern:\n1. **terraform init** → prepare your workspace & providers\n2. **terraform plan** → preview changes before applying\n3. **Edit Terraform files** → fix issues found during review\n4. **terraform validate** → ensure your configuration is syntactically correct\n5. **terraform apply** → deploy the infrastructure\n6. **Check monitoring metrics** → evaluate performance & cost\n7. **Iterate** → adjust scaling, regions, or instance types if needed\n8. **terraform destroy** → clean up to avoid unnecessary costs",
+            "deep_dive": {
+              "text": "### Terraform workflow\nTerraform's workflow encourages safe experimentation. Teams rarely apply changes without a plan review or validation check — especially for cost-impacting infrastructure.\n ### Why Teams Use the Terraform Loop\nLarge organizations rarely run `terraform apply` directly. Instead, CI/CD pipelines:\n- run `terraform fmt` and `terraform validate`\n- generate and store the plan file as an artifact\n- require human approval before apply\n- run cost estimation checks with tools like Infracost\n\nThis ensures safe, auditable changes to production infrastructure.",
+              "links": [
+                { 
+                  "label": "Terraform Validate Docs", 
+                  "url": "https://developer.hashicorp.com/terraform/cli/commands/validate" 
+                },
+                { 
+                  "label": "Terraform Plan Docs", 
+                  "url": "https://developer.hashicorp.com/terraform/cli/commands/plan" 
+                }
+              ]
+            }
           },
           {
-            "type": "quiz",
-            "question": "Which Terraform block defines reusable configuration inputs?",
-            "options": ["provider", "variable", "resource", "output"],
-            "correct_answer": "variable",
-            "explanation": "The variable block lets you parameterize configurations and make modules reusable."
+            "type": "concept_card",
+            "bloom_level": "Analyze",
+            "content": "### Provider Blocks, Regions, and Company Policy\nIn many companies, regions are restricted for:\n- Data residency laws\n- Latency reduction\n- Cost control\n- Operational consistency\n\nTerraform requires a **provider block**, often specifying the cloud region:",
+            "example_code": "provider ''aws'' {\n  region = ''us-east-1''\n}",
+            "deep_dive": {
+              "text": "### Why Region Choice Matters\nCloud regions affect:\n- **Latency** (distance to users)\n- **Cost** (price varies by region)\n- **Compliance** (laws like GDPR)\n- **Disaster recovery** (multi-region redundancy)\n\nMany companies restrict deployments to a few approved regions based on business and legal requirements.",
+              "links": [
+                { 
+                  "label": "AWS Global Infrastructure", 
+                  "url": "https://aws.amazon.com/about-aws/global-infrastructure/" 
+                },
+                { 
+                  "label": "HashiCorp Provider Docs", 
+                  "url": "https://developer.hashicorp.com/terraform/language/providers" 
+                }
+              ]
+            }
           },
           {
-            "type": "resources",
-            "links": [
+            "type": "concept_card",
+            "bloom_level": "Analyze",
+            "content": "Spot the issue: Why will Terraform flag this configuration during planning?",
+            "example_code": "provider \"aws\" {}\n\nresource \"aws_instance\" \"app\" {\n  ami = \"ami-12345\"\n  instance_type = \"t3.large\"\n}\n",
+            "quiz": {
+              "question": "Which issue is most relevant here?",
+              "options": [
+                "The provider is missing a required region",
+                "The AMI ID is invalid",
+                "t3.large cannot be used with Terraform",
+                "The resource needs an output block"
+              ],
+              "correct_answer": "The provider is missing a required region",
+              "explanation": "AWS requires a region to know *where* to deploy resources. Many teams enforce strict region rules.",
+              "remediation": "Fix it by adding `region = \"eu-central-1\"` — the region used in the lab."
+            }
+          },
+          {
+            "type": "concept_card",
+            "bloom_level": "Understand",
+            "content": "### Cost Optimization: Choosing the Right Instance Type\nInstance types matter for both cost and performance. For example:\n- **t3.micro** → low cost, suitable for low-traffic apps\n- **t3.small** → moderate cost, slightly more CPU/memory\n- **t3.large** → significantly higher cost\n\nIn the lab, you will practice identifying overly expensive instance types and replacing them with optimized ones.",
+            "deep_dive": {
+              "text": "### Cloud Cost Best Practices\nPicking the right instance type is a key part of FinOps (cloud cost management). Common approaches include:\n- Right-sizing resources based on metrics\n- Using t-series for burstable, low-traffic workloads\n- Avoiding overprovisioning\n- Tagging instances for cost tracking\n\nIn production environments, teams regularly review metrics to ensure resources match demand.",
+              "links": [
+                { 
+                  "label": "AWS EC2 Instance Types", 
+                  "url": "https://aws.amazon.com/ec2/instance-types/" 
+                },
+                { 
+                  "label": "FinOps Foundation: Optimization", 
+                  "url": "https://www.finops.org/wg/how-to-optimize-cloud-usage/" 
+                }
+              ]
+            }
+          },
+          {
+            "type": "micro_scenario",
+            "bloom_level": "Analyze",
+            "scenario": "Your team receives a cost alert: a developer accidentally launched a `t3.large` instance for a small microservice. What should you check first?",
+            "context_code": "resource \"aws_instance\" \"api\" {\n  ami           = \"ami-abcde\"\n  instance_type = \"t3.large\"\n}",
+            "options": [
+              "Immediately destroy the instance",
+              "Check whether the instance type was required by the workload",
+              "Switch to t3.micro without any review",
+              "Ignore the alert and continue"
+            ],
+            "correct_answer": "Check whether the instance type was required by the workload",
+            "explanation": "Instance type decisions depend on performance needs. Verify if the large instance was intentional.",
+            "remediation": "Teams often benchmark load to choose the smallest instance that meets SLAs."
+          },
+          {
+            "type": "concept_card",
+            "bloom_level": "Analyze",
+            "content": "### Validation vs. Plan in Terraform\n`terraform plan` previews *logical* changes.\n`terraform validate` checks *syntax and internal consistency*.",
+            "deep_dive": {
+              "text": "### Validation in CI/CD\n`terraform validate` is a lightweight check ensuring your configuration is internally consistent. Many pipelines run:\n- `terraform fmt` (formatting)\n- `terraform validate` (syntax)\n- `terraform plan` (preview)\n- `tflint` or `terraform-compliance` (standards enforcement)\n\nThese checks prevent broken configurations from reaching production.",
+              "links": [
+                { 
+                  "label": "Terraform Validate", 
+                  "url": "https://developer.hashicorp.com/terraform/cli/commands/validate" 
+                },
+                { 
+                  "label": "TFLint (Linting)", 
+                  "url": "https://github.com/terraform-linters/tflint",
+                  "note": "A useful linting plugin for terraform"
+                }
+              ]
+            }
+          },
+          {
+            "type": "concept_card",
+            "bloom_level": "Apply",
+            "content": "Why will this validation fail?",
+            "example_code": "resource \"aws_instance\" \"web\" {\n  ami = \"ami-12345\"\n}\n",
+            "quiz": {
+              "question": "What must be added?",
+              "options": ["provider block", "instance_type", "region", "output block"],
+              "correct_answer": "instance_type",
+              "explanation": "`instance_type` determines the compute resources for the instance.",
+              "remediation": "Add `instance_type = \"t3.micro\"` to ensure cost-effective defaults."
+            }
+          },
+          {
+            "type": "concept_card",
+            "bloom_level": "Understand",
+            "content": "### Observability vs Monitoring\n**Monitoring** detects issues.\n**Observability** explains *why* issues occur.\n\nCheck metrics can be:\n- Latency (ms)\n- Cost (USD/month)\n- Availability (%). These values can change depending on scaling.",
+            "deep_dive": {
+              "text": "### The Three Pillars of Observability\nModern observability platforms rely on:\n- **Metrics** — quantitative measurements (latency, CPU, cost)\n- **Logs** — structured event data\n- **Traces** — end-to-end request paths across services\n\nTogether, they reveal *why* performance changes after infrastructure updates.",
+              "links": [
+                { 
+                  "label": "Grafana Observability Guide", 
+                  "url": "https://grafana.com/oss/" 
+                },
+                { 
+                  "label": "OpenTelemetry", 
+                  "url": "https://opentelemetry.io/" 
+                }
+              ]
+            }
+          },
+          {
+            "type": "concept_card",
+            "bloom_level": "Analyze",
+            "content": "Interpret this monitoring data:",
+            "example_code": "Latency: 280 ms\nCost: $150/month\nAvailability: 99.1%\n",
+            "quiz": {
+              "question": "What is the best initial action?",
+              "options": [
+                "Scale vertically (bigger instance)",
+                "Examine whether latency originates from the region",
+                "Ignore and continue",
+                "Add more dashboards"
+              ],
+              "correct_answer": "Examine whether latency originates from the region",
+              "explanation": "Region placement affects network distance. Latency often reveals regional misconfiguration.",
+              "remediation": "In the lab, you’ll fix a region misconfiguration and observe latency improvements."
+            }
+          },
+          {
+            "type": "concept_card",
+            "bloom_level": "Understand",
+            "content": "### Scaling and Auto-Scaling Groups\nAuto-scaling groups (ASGs) allow your infrastructure to adapt to traffic spikes.\nThey rely on:\n- Launch templates\n- Scaling policies\n- Health checks\n\nYou will add an ASG in the lab, ensuring the launch template is referenced correctly.",
+            "deep_dive": {
+              "text": "### When to Use Auto-Scaling\nAuto-scaling is useful when workloads experience unpredictable or seasonal load. ASGs improve:\n- **Scalability** (add/remove instances automatically)\n- **Reliability** (replace unhealthy instances)\n- **Cost efficiency** (scale down during quiet periods)\n\nLaunch templates define how each new instance is configured.",
+              "links": [
+                { 
+                  "label": "AWS Auto Scaling Overview", 
+                  "url": "https://docs.aws.amazon.com/autoscaling/" 
+                }
+              ]
+            }
+          },
+          {
+            "type": "concept_card",
+            "bloom_level": "Apply",
+            "content": "Which version correctly references a launch template inside an autoscaling group?",
+            "examples": [
               {
-                "label": "Terraform Best Practices",
-                "url": "https://developer.hashicorp.com/terraform/tutorials/configuration-language"
+                "label": "Incorrect",
+                "code": "resource \"aws_autoscaling_group\" \"asg\" {\n  desired_capacity = 2\n  # missing launch_template block\n}"
               },
               {
-                "label": "Prometheus + Grafana Monitoring Overview",
-                "url": "https://prometheus.io/docs/visualization/grafana/"
-              },
-              {
-                "label": "AWS Well-Architected Framework",
-                "url": "https://aws.amazon.com/architecture/well-architected/"
+                "label": "Correct",
+                "code": "resource \"aws_autoscaling_group\" \"asg\" {\n  desired_capacity = 2\n\n  launch_template {\n    id      = aws_launch_template.demo.id\n    version = \"$Latest\"\n  }\n}"
               }
-            ]
+            ],
+            "quiz": {
+              "question": "What happens if the ASG lacks a launch_template reference?",
+              "options": [
+                "Instances cannot launch because the configuration is incomplete",
+                "Terraform automatically generates a template",
+                "Instances will launch with random types",
+                "Nothing — it's optional"
+              ],
+              "correct_answer": "Instances cannot launch because the configuration is incomplete",
+              "explanation": "ASGs need a template for instance configuration.",
+              "remediation": "Always reference the correct launch_template block when adding scaling."
+            }
+          },
+          {
+            "type": "concept_card",
+            "bloom_level": "Evaluate",
+            "content": "### Cost, Reliability, and Sustainability — The DevOps Trade-Off Triangle\nIn cloud design you often balance:\n- **Cost** (Choose minimal instance sizes, destroy unused resources)\n- **Reliability** (Availability, scaling, redundancy)\n- **Scalability** (Traffic spikes handled via ASG)\n\nYou’ll make these trade-offs in the lab’s auto-scaling portion.\nSustainable cloud practices like right-sizing, deleting unused resources, and avoiding over-provisioning reduce cost *and* carbon footprint while supporting business goals.",
+            "deep_dive": {
+              "text": "### Making Real-World Trade-Offs\nEngineers regularly balance:\n- **Cost** — lower instance sizes, shutting down unused environments\n- **Scalability** — autoscaling groups, load balancing\n- **Reliability** — redundancy, health checks, multi-AZ deployment\n\nDevOps teams use observability data to justify cost-saving decisions without compromising user experience.",
+              "links": [
+                { 
+                  "label": "AWS Well-Architected Cost Optimization Pillar", 
+                  "url": "https://docs.aws.amazon.com/wellarchitected/latest/cost-optimization-pillar" 
+                },
+                { 
+                  "label": "Sustainable Cloud Practices", 
+                  "url": "https://cloud.google.com/sustainability" 
+                }
+              ]
+            }
+          },
+          {
+            "type": "micro_scenario",
+            "bloom_level": "Analyze",
+            "scenario": "A product manager asks: \"Can we reduce monthly cost by 30% without hurting reliability?\" What should your first step be?",
+            "context_code": "Monthly cost: $220\nLatency: 250 ms\nAvailability: 99.2%",
+            "options": [
+              "Lower instance type blindly",
+              "Add more autoscaling nodes",
+              "Analyze monitoring trends for underutilized resources",
+              "Switch regions immediately"
+            ],
+            "correct_answer": "Analyze monitoring trends for underutilized resources",
+            "explanation": "Observability helps you identify where cost savings are possible without harming reliability.",
+            "remediation": "In the lab, metrics change dynamically after `terraform apply` — observe them before acting."
           }
         ]
       },
       "lab": {
-        "title": "Scenario Challenge",
-        "scenario_prompt": "Optimize the given Terraform configuration for cost and reliability. Your deployment must meet the SLA while minimizing resources.",
+        "title": "Scenario Challenge – Optimize Cloud Deployment",
+        "bloom_level": "Evaluate",
+        "scenario_prompt": "Your startup’s cloud costs have doubled overnight. Refactor the Terraform configuration to balance cost and reliability while maintaining 99.9% uptime.",
         "code_language": "hcl",
         "feedback_logic": "analyzeIaC",
-        "success_condition": "contains resource, provider, output, variable",
-        "story_context": "Your team’s cloud costs are spiking. Management asked you to refactor the IaC scripts to use reserved instances and smaller VM types.",
-        "collaboration_hint": "Cloud architect says: 'Check your instance types and region pricing.'"
+        "success_condition": "contains resource, variable, output, provider and passes cost & reliability checks",
+        "story_context": "Management asks you to review infrastructure expenses. You must modify instance types, enable reserved instances, and confirm deployment still meets the SLA. Monitoring feedback reflects your choices (cost ↓, latency stable, availability ✓).",
+        "collaboration_hint": "Cloud architect says: 'Check instance types and region pricing; always preview with `terraform plan` before apply.'",
+        "extended_interaction": {
+          "monitoring_dashboard": {
+            "metrics": ["cost_estimate", "latency_ms", "availability_percent"],
+            "dynamic_feedback": "Changing instance size or region updates simulated cost and latency graphs."
+          },
+          "incident_generator": {
+            "rule": "High latency or 5xx errors triggered by incorrect region or missing load balancer configuration."
+          }
+        }
       },
       "postlab": {
-        "title": "Reflect and Extend",
+        "title": "Reflect and Evaluate",
         "reflection_prompts": [
-          "Which IaC principle helped most in optimizing deployments?",
-          "How can monitoring tools like Grafana or Prometheus aid cost control?",
-          "What challenges persist in balancing performance and cost?"
+          "Which IaC principles helped you optimize your deployment?",
+          "How did monitoring data influence your decisions?",
+          "What trade-offs did you make between cost, reliability, and scalability?",
+          "How would you improve the observability or security of this setup?",
+          "How can sustainable cloud practices align with business goals?"
         ],
         "further_resources": [
-          {
-            "label": "Terraform Best Practices",
-            "url": "https://developer.hashicorp.com/terraform/tutorials/configuration-language"
+          { 
+            "label": "Terraform: Declarative Configuration", 
+            "url": "https://developer.hashicorp.com/terraform/docs" 
+          },
+          { 
+            "label": "Terraform Validate Docs", 
+            "url": "https://developer.hashicorp.com/terraform/cli/commands/validate" 
+          },
+          { 
+            "label": "Terraform Plan Docs", 
+            "url": "https://developer.hashicorp.com/terraform/cli/commands/plan" 
           },
           {
-            "label": "Prometheus + Grafana Monitoring Overview",
-            "url": "https://prometheus.io/docs/visualization/grafana/"
+            "label": "Terraform Best Practices (HashiCorp Docs)",
+            "url": "https://developer.hashicorp.com/terraform/tutorials/configuration-language"
+          },
+          { 
+            "label": "AWS Global Infrastructure", 
+            "url": "https://aws.amazon.com/about-aws/global-infrastructure/" 
+          },
+          { 
+            "label": "HashiCorp Provider Docs", 
+            "url": "https://developer.hashicorp.com/terraform/language/providers" 
+          },
+          { 
+            "label": "AWS EC2 Instance Types", 
+            "url": "https://aws.amazon.com/ec2/instance-types/" 
+          },
+          { 
+            "label": "Terraform Validate", 
+            "url": "https://developer.hashicorp.com/terraform/cli/commands/validate" 
+          },
+          { 
+            "label": "TFLint (Linting)", 
+            "url": "https://github.com/terraform-linters/tflint" 
+          },
+          { 
+            "label": "Grafana Observability Guide", 
+            "url": "https://grafana.com/oss/" 
+          },
+          { 
+            "label": "OpenTelemetry", 
+            "url": "https://opentelemetry.io/" 
+          },
+          { 
+            "label": "AWS Auto Scaling Overview", 
+            "url": "https://docs.aws.amazon.com/autoscaling/" 
+          },
+          { 
+            "label": "AWS Well-Architected Cost Optimization Pillar", 
+            "url": "https://docs.aws.amazon.com/wellarchitected/latest/cost-optimization-pillar" 
           }
         ]
       }

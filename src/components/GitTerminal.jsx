@@ -3,12 +3,23 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { scenarioScript } from "@/data/scenarioScript";
+import { scenarioScriptModule2 } from "@/data/scenarioScriptModule2";
+import { scenarioScriptModule3 } from "@/data/scenarioScriptModule3";
 
 export default function GitTerminal({ onAdvance }) {
-  const [log, setLog] = useState(["👋 Welcome to the GitOps Simulation Terminal"]);
+  const [log, setLog] = useState(["Welcome to the GitOps Simulation Terminal"]);
   const [input, setInput] = useState("");
   const [step, setStep] = useState(0);
   const terminalRef = useRef(null);
+
+  //Determines which script to use based on the active module
+  const activeModule = localStorage.getItem("activeModule");
+  const script =
+    activeModule === "module-3"
+      ? scenarioScriptModule3
+      : activeModule === "module-2"
+      ? scenarioScriptModule2
+      : scenarioScript;
 
   useEffect(() => {
     terminalRef.current?.scrollTo(0, terminalRef.current.scrollHeight);
@@ -24,60 +35,90 @@ export default function GitTerminal({ onAdvance }) {
     if (!cmd) return;
     addLog(`$ ${cmd}`);
 
-    const current = scenarioScript[step];
+    const current = script[step];
     const matches =
       current?.expected?.some((pattern) => cmd.startsWith(pattern)) || false;
 
     // Dynamic branch name parsing
-    const branchMatch = cmd.match(/git\s+(?:checkout|switch)\s+(?:-b|-c)?\s*([\w\/.-]+)/);
+    const branchMatch = cmd.match(
+      /git\s+(?:checkout|switch)\s+(?:-b|-c)?\s*([\w\/.-]+)/
+    );
     const branchName = branchMatch ? branchMatch[1] : "feature/fix-dockerfile";
-    // Persist branch name so GitOpsEditor can access it later
-    if (current.id === 1 && branchMatch) {
+
+    if (current?.id === 1 && branchMatch) {
       localStorage.setItem("branchName", branchName);
     }
 
     if (matches) {
       let successMsg = current.success;
 
-      // Replace branch name dynamically
-      if (current.id === 1 && branchMatch) {
+      if (current?.id === 1 && branchMatch) {
         successMsg = `🪄 Branch '${branchName}' created and switched.`;
       }
 
-      addLog(`${successMsg}`);
+      addLog(successMsg);
       if (current.learning_focus) {
-        addLog(` Why? / What For?: ${current.learning_focus}`);
+        addLog(`💡 Why?: ${current.learning_focus}`);
       }
 
-      // If command involves opening the Dockerfile, move to editor view
+      // Open Dockerfile editor (Module 1)
       if (cmd.includes("open dockerfile") || cmd.includes("code dockerfile")) {
         addLog("📂 Opening Dockerfile in the editor...");
-        setTimeout(() => onAdvance("editor"), 1000);
+        setTimeout(() => onAdvance(2), 2000);
         setInput("");
         return;
       }
 
-      // Otherwise, just continue to next scenario step
+      // Branching and open Kube YAML editor (Module 2)
+      if (activeModule === "module-2") {
+        if (cmd.startsWith("open deployment.yaml")) {
+          addLog("📂 Opening Kubernetes deployment editor...");
+          setTimeout(() => onAdvance(3), 2000);
+          setInput("");
+          return;
+        }
+      }
+
+      if (
+        (cmd.includes("open main.tf") || cmd.includes("code main.tf"))
+      ) {
+        addLog("📂 Opening Terraform configuration (main.tf)...");
+        setTimeout(() => onAdvance(3), 2000);
+        setInput("");
+        return;
+      }
+
+      // Terraform command visual feedback (Module 3, Step 1-3)
+      if (activeModule === "module-3") {
+        if (cmd.startsWith("terraform init")) {
+          addLog("🔧 Initializing Terraform... downloading providers and modules...");
+        } else if (cmd.startsWith("terraform plan")) {
+          addLog("Generating Terraform execution plan...");
+        } else if (cmd.includes("open main.tf") || cmd.includes("code main.tf")) {
+          addLog("📂 Opening Terraform configuration (main.tf)...");
+          addLog("You'll continue the next steps inside the IaC Editor.");
+        }
+      }
+
+      // Continue to next scenario step
       setTimeout(() => {
-        if (current.next !== null) {
+        if (current.next !== null && current.next <= script.length) {
           setStep(current.next - 1);
         } else {
-          addLog("🎉 All steps completed. Opening Dockerfile...");
-          setTimeout(() => onAdvance("editor"), 1500);
+          addLog("🎉 Scenario complete — proceeding to reflection or summary view.");
+          setTimeout(() => onAdvance("editor"), 1200);
         }
       }, 800);
-    } 
-    else if (cmd === "help" || cmd === "hint") {
-      addLog(`💡 Hint: ${current.hint}`);
-    } 
-    else {
-      addLog(`💡 You need another command at this point. Type 'help' if you're stuck.`);
+    } else if (cmd === "help" || cmd === "hint") {
+      addLog(`💡 Hint: ${current?.hint || "No hint available."}`);
+    } else {
+      addLog("That command doesn't fit here. Type 'help' if you're unsure.");
     }
 
     setInput("");
   }
 
-  const currentStory = scenarioScript[step]?.story;
+  const currentStory = script[step]?.story;
 
   return (
     <Card className="p-4 bg-black text-green-300 font-mono">

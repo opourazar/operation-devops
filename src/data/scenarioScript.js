@@ -82,7 +82,7 @@ export const scenarioScript = [
   },
   {
     id: 10,
-    story: "Great job! You’ve successfully collaborated, handled feedback, and managed merge conflicts. Type 'run pipeline' to let the pipeline do its magic. Once the build completes, scroll down to complete your reflection to finish this module.",
+    story: "Great job! You’ve successfully collaborated, handled feedback, and managed merge conflicts. Now that the Dockerfile is fixed, our pipeline can trigger a build (usually automatically in platforms like GitHub, but here we type 'run pipeline'). Once the build completes, scroll down to complete your reflection to finish this module.",
     expected: ["run pipeline", "trigger pipeline"],
     hint: "Try 'run pipeline' to simulate CI/CD pipeline execution.",
     success: "CI pipeline triggered. Monitoring build results...",

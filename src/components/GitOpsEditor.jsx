@@ -7,12 +7,10 @@ import { scenarioScript } from "@/data/scenarioScript";
 import { format } from "date-fns";
 import FeedbackPanel from "@/components/FeedbackPanel";
 import ReflectionCard from "@/components/ReflectionCard";
-import PipelineSimulator from "./PipelineSimulator";
 import { updateModuleProgress } from "@/lib/updateModuleProgress";
 
 export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance }) {
-  const [code, setCode] = useState(`# Example Dockerfile
-  FROM node:18-alpine
+  const [code, setCode] = useState(`FROM node:18-alpine
   WORKDIR /app
   COPY . .
   RUN npm install`);
@@ -291,8 +289,8 @@ export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance }
         setMergeConflict(false);
         setConflictIntroduced(false);
         addTerminalLog(`Commit successful: "${lastCommitMsg || "fix: resolve merge conflict"}"`);
-        setShowReflection(true); // reflection trigger preparation for Day 13
-        if (onAdvance) onAdvance(10); // move to pipeline stage
+        setShowReflection(true);
+        if (onAdvance) onAdvance(10);
         setCurrentStep(10);
         return;
       }
@@ -384,16 +382,6 @@ export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance }
     }, 2000);
   }
 
-  // Reflection save
-  function handleReflectionSave(text, prompt) {
-    const reflections = JSON.parse(localStorage.getItem("reflections") || "[]");
-    const newEntry = { text, prompt, time: format(new Date(), "HH:mm:ss") };
-    localStorage.setItem("reflections", JSON.stringify([newEntry, ...reflections]));
-    setShowReflection(false);
-    window.dispatchEvent(new Event("reflectionsUpdated"));
-    updateModuleProgress();
-  }
-
   return (
     <div className="space-y-6">
       {/* Story block */}
@@ -477,44 +465,17 @@ export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance }
         </Card>
       </div>
 
-      <hr className="my-6 border-slate-300" />
-      <PipelineSimulator trigger={pipelineTrigger} />
-
       {/* Reflection Section*/}
       {showReflection && (
-        <div className="mt-6 p-6 border border-blue-400 bg-blue-50 rounded-xl space-y-4">
-          <h2 className="text-lg font-semibold text-blue-700"> Final Reflection</h2>
-          <p className="text-sm text-slate-700">
-            Before completing <strong>{moduleData.title}</strong>, take a few minutes to reflect on what you’ve practiced:
-          </p>
-          <ul className="list-disc ml-5 text-sm text-slate-600 space-y-1">
-            <li>What caused the merge conflict and how did you resolve it?</li>
-            <li>How did Git branching and reviews improve collaboration?</li>
-            <li>What new insights do you have about Dockerfiles or build pipelines?</li>
-          </ul>
-
-          <textarea
-            className="w-full border rounded p-2 text-sm bg-white text-slate-800"
-            placeholder="Write your thoughts here..."
-            rows="4"
-            value={reflectionText}
-            onChange={(e) => setReflectionText(e.target.value)}
-          />
-
-          <div className="flex justify-end">
-            <Button
-              onClick={() => {
-                handleReflectionSave(reflectionText, moduleData.title);
-                setShowReflection(false);
-                addTerminalLog("🎓 Reflection saved! Module complete — next challenge unlocked.");
-                updateModuleProgress(moduleData.id);
-                setShowCompletionModal(true);
-              }}
-            >
-              Finish Module
-            </Button>
-          </div>
-        </div>
+        <ReflectionCard
+          moduleData={moduleData}
+          onComplete={() => {
+            addTerminalLog("🎉 Reflection saved! Module complete — next challenge unlocked.");
+            updateModuleProgress(moduleData.id);
+            setShowReflection(false);
+            setShowCompletionModal(true);
+          }}
+        />
       )}
 
       {/* Module Complete Modal */}

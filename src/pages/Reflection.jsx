@@ -1,4 +1,4 @@
-import ReflectionHistory from "@/components/ReflectionHistory";
+import ReflectionJournal from "@/components/ReflectionJournal";
 
 export default function Reflection() {
   const reflections = JSON.parse(localStorage.getItem("reflections") || "[]");
@@ -9,7 +9,7 @@ export default function Reflection() {
       <p className="text-sm text-gray-600">
         Here you can review your previous reflections and identify recurring insights or misconceptions.
       </p>
-      <ReflectionHistory />
+      <ReflectionJournal />
     </div>
   );
 }
