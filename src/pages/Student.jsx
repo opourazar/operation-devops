@@ -1,7 +1,24 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getModules, saveModules } from "@/lib/loadModules";
+import { getModules } from "@/lib/loadModules";
+import { logEvent } from "@/lib/telemetry";
+import {
+  loadCheatSheet,
+  exportCheatSheet,
+  setCheatSheetOpen
+} from "@/lib/cheatsheet";
+
+const progressKey = (id) => `moduleProgress:${id}`;
+const getSavedProgress = (id) => {
+  try {
+    const raw = localStorage.getItem(progressKey(id));
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    console.warn("Could not read saved progress", err);
+    return null;
+  }
+};
 
 export default function Student() {
   const [modules, setModules] = useState([]);
@@ -13,9 +30,22 @@ export default function Student() {
   }, []);
 
   // Stores active module and navigates to workspace
-  function handleStartModule(moduleId) {
+  function handleStartModule(moduleId, options = {}) {
+    if (options.resetProgress) {
+      localStorage.removeItem(progressKey(moduleId));
+    }
+
+    logEvent("module_launch", {
+      module: moduleId,
+      timestamp: Date.now()
+    });
     localStorage.setItem("activeModule", moduleId);
     window.location.href = "/workspace";
+  }
+
+  function handleOpenCheat(moduleId) {
+    setCheatSheetOpen(moduleId, true);
+    handleStartModule(moduleId);
   }
 
   // Extract all post-lab resources grouped by module
@@ -32,7 +62,7 @@ export default function Student() {
       <section>
         <h1 className="text-2xl font-semibold">Learning Modules</h1>
         <p className="text-sm text-gray-600">
-          Progress through authentic DevOps learning challenges — from foundational containerization to cloud deployment.
+          Progress through authentic DevOps learning challenges - from foundational containerization to cloud deployment.
         </p>
       </section>
 
@@ -50,16 +80,60 @@ export default function Student() {
               <p className="text-sm text-gray-700">{m.category}</p>
               <p className="text-sm text-gray-600">{m.description}</p>
               <div className="flex gap-2 items-center">
-                {m.status === "unlocked" && (
-                  <Button onClick={() => handleStartModule(m.id)}>Start</Button>
-                )}
+                {(() => {
+                  const saved = getSavedProgress(m.id);
+                  const canResume = saved?.stage && saved.stage !== "complete";
+                  const label = canResume
+                    ? "Resume"
+                    : m.status === "completed"
+                    ? "Restart"
+                    : "Start";
+                  const showButton = m.status !== "locked" || canResume;
+
+                  return (
+                    showButton && (
+                      <Button
+                        onClick={() =>
+                          handleStartModule(m.id, { resetProgress: !canResume })
+                        }
+                      >
+                        {label}
+                      </Button>
+                    )
+                  );
+                })()}
                 {m.status === "completed" && (
-                  <span className="text-green-600 text-sm font-medium">✔ Completed</span>
+                  <span className="text-green-600 text-sm font-medium">✓ Completed</span>
                 )}
                 {m.status === "locked" && (
                   <span className="text-xs text-gray-500">Locked</span>
                 )}
               </div>
+              {(() => {
+                const cheat = loadCheatSheet(m.id);
+                const hasCheat = !!(cheat.content && cheat.content.trim().length > 0);
+                return (
+                  <div className="flex gap-2 items-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenCheat(m.id)}
+                      disabled={m.status === "locked"}
+                    >
+                      {hasCheat ? "Cheat Sheet" : "Add Notes"}
+                    </Button>
+                    {hasCheat && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => exportCheatSheet(m.id, m.title)}
+                      >
+                        Export
+                      </Button>
+                    )}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         ))}
@@ -86,7 +160,7 @@ export default function Student() {
                 >
                   <span className="font-medium text-slate-800">{group.title}</span>
                   <span className="text-blue-600">
-                    {expanded === i ? "▲" : "▼"}
+                    {expanded === i ? "" : ""}
                   </span>
                 </div>
 

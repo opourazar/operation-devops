@@ -1,7 +1,6 @@
 import ReflectionJournal from "@/components/ReflectionJournal";
 
 export default function Reflection() {
-  const reflections = JSON.parse(localStorage.getItem("reflections") || "[]");
   
   return (
     <div className="p-6 space-y-4">

@@ -230,13 +230,13 @@
             "question": "What happens after you push changes to a feature branch?",
             "options": [
               "The branch is automatically merged",
-              "Your PR updates and triggers CI checks",
+              "Existing PR updates and triggers CI checks",
               "Git deletes the branch",
               "Nothing happens"
             ],
-            "correct_answer": "Your PR updates and triggers CI checks",
-            "explanation": "Most platforms run CI and refresh the PR automatically.",
-            "remediation": "Make sure changes are pushed to the correct remote branch."
+            "correct_answer": "Existing PR updates and triggers CI checks",
+            "explanation": "Most platforms refresh the PR and run CI checks and other pipeline jobs of choice.",
+            "remediation": "Depending on your Git-based platform it can do necessary jobs automatically, e.g. checks."
           },
           {
             "type": "concept_card",
@@ -272,7 +272,7 @@
               "options": ["WORKDIR", "RUN", "CMD", "EXPOSE"],
               "correct_answer": "CMD",
               "explanation": "Docker containers exit when the main process ends. Without CMD, there's no long-running process to keep the container alive.",
-              "remediation": "Add a startup instruction, such as:\n```dockerfile\nCMD [\"node\", \"server.js\"]\n```"
+              "remediation": "In this case, the right CMD command could look like this: CMD [\"node\", \"server.js\"]."
             },
             "deep_dive": {
               "text": "### Deep Dive: How CMD Works\n- **CMD defines the default startup command.**\n- It runs every time the container starts.\n- Without it, Docker starts the base image's default process (often nothing), causing immediate exit.\n\nUnderstanding CMD will help you debug the Dockerfile in the upcoming lab challenge.",
@@ -506,7 +506,7 @@
             "options": ["replicas", "selector", "template", "containers"],
             "correct_answer": "selector",
             "explanation": "The selector links the Deployment to the correct Pods based on labels.",
-            "remediation": "Check that `spec.selector.matchLabels` exactly matches `template.metadata.labels`."
+            "remediation": "It is important to check that `spec.selector.matchLabels` exactly matches `template.metadata.labels` for Pod management."
           },
           {
             "type": "concept_card",

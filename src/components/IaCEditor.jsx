@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import ReflectionCard from "@/components/ReflectionCard";
 import { updateModuleProgress } from "@/lib/updateModuleProgress";
 import { scenarioScriptModule3 } from "@/data/scenarioScriptModule3";
+import { logEvent } from "@/lib/telemetry";
 
 // Mock Terraform file imports (replace with actual paths if needed)
 import mainFile from "@/data/terraform/main.tf?raw";
@@ -12,9 +13,28 @@ import variablesFile from "@/data/terraform/variables.tf?raw";
 import outputsFile from "@/data/terraform/outputs.tf?raw";
 import autoscalingFile from "@/data/terraform/autoscaling.tf?raw";
 
-export default function IaCEditor({ moduleData, onAdvance }) {
+export default function IaCEditor({ moduleData, onAdvance, sessionId }) {
+  const fileDefaults = {
+    "main.tf": mainFile,
+    "variables.tf": variablesFile,
+    "outputs.tf": outputsFile,
+    "autoscaling.tf": autoscalingFile,
+  };
+
+  const getInitialFileContents = () => {
+    const base = { ...fileDefaults };
+    if (typeof window === "undefined") return base;
+
+    return Object.keys(base).reduce((acc, key) => {
+      const stored = localStorage.getItem(`iacEditor_${key}`);
+      acc[key] = stored ?? base[key];
+      return acc;
+    }, {});
+  };
+
+  const [fileContents, setFileContents] = useState(getInitialFileContents);
   const [selectedFile, setSelectedFile] = useState("main.tf");
-  const [code, setCode] = useState(mainFile);
+  const [code, setCode] = useState(() => getInitialFileContents()["main.tf"]);
   const [feedback, setFeedback] = useState([]);
   const [metrics, setMetrics] = useState({
     cost: 220,
@@ -25,6 +45,7 @@ export default function IaCEditor({ moduleData, onAdvance }) {
   const [validated, setValidated] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [showAutoStructure, setShowAutoStructure] = useState(false);
 
   // Scenario flow state
   const [currentStep, setCurrentStep] = useState(4); // Start after main.tf is opened
@@ -44,37 +65,28 @@ export default function IaCEditor({ moduleData, onAdvance }) {
 
   const activeButtons = buttonStateMap[currentStep] || {};
 
-  // Load selected Terraform file + only auto-advance to step 8 when user opens autoscaling.tf after step 6
+  // Load selected Terraform file (preferring saved drafts) + only auto-advance to step 8 when user opens autoscaling.tf after step 6
   useEffect(() => {
-    let fileContent = mainFile;
-
-    switch (selectedFile) {
-      case "variables.tf":
-        fileContent = variablesFile;
-        break;
-      case "outputs.tf":
-        fileContent = outputsFile;
-        break;
-      case "autoscaling.tf":
-        fileContent = autoscalingFile;
-        break;
-      default:
-        fileContent = mainFile;
-    }
-
-
-    setCode(fileContent);
+    const nextCode = fileContents[selectedFile] ?? fileDefaults[selectedFile] ?? "";
+    setCode(nextCode);
 
     // Only auto-advance to next scenario step when opening autoscaling.tf at the right time
     if (selectedFile === "autoscaling.tf" && currentStep === 7) {
       // Inform the learner and then advance to step 8 (ready to validate scaling)
       setFeedback([
-        "📂 autoscaling.tf opened — add the auto-scaling block now.",
+        "📂 autoscaling.tf opened — add the auto-scaling blocks now using the TODOs or peek the structure below.",
         "When ready, run 'terraform validate' to check syntax."
       ]);
       setTimeout(() => setCurrentStep(8), 800);
     }
-  }, [selectedFile]);
+  }, [selectedFile, fileContents, currentStep]);
+
+  // Hide the structure helper when leaving autoscaling.tf
+  useEffect(() => {
+    if (selectedFile !== "autoscaling.tf" && showAutoStructure) {
+      setShowAutoStructure(false);
+    }
+  }, [selectedFile, showAutoStructure]);
 
   // Terraform analysis
   function analyzeIaC(code) {
@@ -142,6 +154,15 @@ export default function IaCEditor({ moduleData, onAdvance }) {
   function handleValidate() {
     if (!activeButtons.validate) return;
 
+    // logEvent call for telemetry hook
+    logEvent("editor_action", {
+      module: moduleData.id,
+      session: sessionId,
+      action: "terraform_validate",
+      file: selectedFile,
+      step: currentStep
+    });
+
    // Step 8: Autoscaling.tf validation logic with comment filtering
     if (currentStep === 8) {
       if (selectedFile !== "autoscaling.tf") {
@@ -195,11 +216,27 @@ export default function IaCEditor({ moduleData, onAdvance }) {
         setFeedback(findings);
         setValidated(true);
 
+        // logEvent call for telemetry hook for validation result
+        logEvent("validation_result", {
+          module: moduleData.id,
+          session: sessionId,
+          success: success,
+          details: feedback
+        });
+
         // Progress after success
         setTimeout(() => setCurrentStep(9), 1000);
       } else {
         findings.push("Continue completing the remaining To-Dos.");
         setFeedback(findings);
+
+        // logEvent call for telemetry hook for validation result
+        logEvent("validation_result", {
+          module: moduleData.id,
+          session: sessionId,
+          success: success,
+          details: feedback
+        });
       }
 
       return;
@@ -227,6 +264,15 @@ export default function IaCEditor({ moduleData, onAdvance }) {
       ]);
       return;
     }
+
+    // logEvent call for telemetry hook
+    logEvent("editor_action", {
+      module: moduleData.id,
+      session: sessionId,
+      action: "apply_fix",
+      file: selectedFile,
+      step: currentStep
+    });
 
     simulateMetrics();
     setFeedback([
@@ -310,8 +356,82 @@ export default function IaCEditor({ moduleData, onAdvance }) {
       <textarea
         className="w-full h-56 bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-400"
         value={code}
-        onChange={(e) => setCode(e.target.value)}
+        onChange={(e) => {
+          const nextValue = e.target.value;
+          setCode(nextValue);
+          setFileContents((prev) => {
+            const updated = { ...prev, [selectedFile]: nextValue };
+            if (typeof window !== "undefined") {
+              localStorage.setItem(`iacEditor_${selectedFile}`, nextValue);
+            }
+            return updated;
+          });
+          logEvent("editor_change", {
+            module: moduleData.id,
+            session: sessionId,
+            editor: "iac",
+            file: selectedFile,
+            length: nextValue.length
+          });
+        }}
       />
+
+      {selectedFile === "autoscaling.tf" && (
+        <div className="flex items-center justify-between text-xs text-slate-400">
+          <span>
+            Tip: follow the TODOs or reveal a reference structure for launch templates and Auto Scaling Groups.
+          </span>
+          <button
+            type="button"
+            className="text-sky-300 hover:text-sky-200"
+            onClick={() => {
+              const next = !showAutoStructure;
+              setShowAutoStructure(next);
+              logEvent("iac_show_structure_toggle", {
+                module: moduleData.id,
+                session: sessionId,
+                shown: next,
+                file: selectedFile,
+                step: currentStep
+              });
+            }}
+          >
+            {showAutoStructure ? "Hide autoscaling structure" : "Show autoscaling structure"}
+          </button>
+        </div>
+      )}
+
+      {showAutoStructure && selectedFile === "autoscaling.tf" && (
+        <div className="mt-2 p-3 border-l-4 border-slate-700 bg-slate-900 rounded text-sm">
+          <pre className="whitespace-pre-wrap text-left text-slate-100">
+{`resource "aws_launch_template" "demo_template" {
+  name_prefix   = "demo-template-"
+  image_id      = "ami-12345"
+  instance_type = var.instance_type
+}
+
+resource "aws_autoscaling_group" "demo_asg" {
+  desired_capacity = 1
+  min_size         = 1
+  max_size         = 3
+
+  launch_template {
+    id      = aws_launch_template.demo_template.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "demo-autoscaling"
+    propagate_at_launch = true
+  }
+}`}
+          </pre>
+          <p className="text-xs text-slate-400 mt-2">
+            Use this as a reference—keep working from the TODOs above so validation still guides you.
+          </p>
+        </div>
+      )}
 
       {/* Buttons */}
       <p className="text-slate-400 text-sm italic mb-1">
@@ -419,7 +539,13 @@ export default function IaCEditor({ moduleData, onAdvance }) {
             updateModuleProgress(moduleData.id);
             setShowReflection(false);
             setShowCompletionModal(true);
+            logEvent("module_complete", {
+              module: moduleData.id,
+              session: sessionId,
+              timestamp: Date.now()
+            });
           }}
+          sessionId={sessionId}
         />
       )}
 

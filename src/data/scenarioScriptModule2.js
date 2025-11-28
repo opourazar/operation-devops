@@ -2,7 +2,7 @@ export const scenarioScriptModule2 = [
   {
     id: 1,
     story:
-      "Welcome to the Kubernetes Deployment Debug Lab! Your teammate reports that the newly deployed backend service isn't reachable. Before touching Kubernetes configs, let’s follow standard DevOps workflow: create a working branch to experiment safely.",
+      "Your teammate Alex reports that the newly deployed backend service isn't reachable. Before touching Kubernetes configs, let’s follow standard DevOps workflow: create a working branch to experiment safely.",
     expected: ["git checkout -b", "git switch -c", "git switch -b"],
     success: "Branch prepared — you’re now working safely on an isolated change.",
     hint: "Use: git checkout -b fix/deployment-bug",

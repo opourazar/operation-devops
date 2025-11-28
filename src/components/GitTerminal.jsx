@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { scenarioScript } from "@/data/scenarioScript";
 import { scenarioScriptModule2 } from "@/data/scenarioScriptModule2";
 import { scenarioScriptModule3 } from "@/data/scenarioScriptModule3";
+import { logEvent } from "@/lib/telemetry";
 
-export default function GitTerminal({ onAdvance }) {
+export default function GitTerminal({ onAdvance, sessionId }) {
   const [log, setLog] = useState(["Welcome to the GitOps Simulation Terminal"]);
   const [input, setInput] = useState("");
   const [step, setStep] = useState(0);
@@ -39,12 +40,21 @@ export default function GitTerminal({ onAdvance }) {
     const matches =
       current?.expected?.some((pattern) => cmd.startsWith(pattern)) || false;
 
-    // Dynamic branch name parsing
+    // logEvent call for telemetry hook for terminal progression
+      logEvent("terminal_command", {
+        module: activeModule,
+        session: sessionId,
+        step: script[step].id,
+        command: cmd
+      });
+    
+      // Dynamic branch name parsing
     const branchMatch = cmd.match(
       /git\s+(?:checkout|switch)\s+(?:-b|-c)?\s*([\w\/.-]+)/
     );
     const branchName = branchMatch ? branchMatch[1] : "feature/fix-dockerfile";
 
+    
     if (current?.id === 1 && branchMatch) {
       localStorage.setItem("branchName", branchName);
     }
@@ -66,6 +76,15 @@ export default function GitTerminal({ onAdvance }) {
         addLog("📂 Opening Dockerfile in the editor...");
         setTimeout(() => onAdvance(3), 2000);
         setInput("");
+        
+        // logEvent call for telemetry hook
+          logEvent("scenario_advance", {
+            module: activeModule,
+            session: sessionId,
+            fromStep: script[step].id,
+            toStep: current.next
+          });
+
         return;
       }
 
@@ -75,18 +94,27 @@ export default function GitTerminal({ onAdvance }) {
           addLog("📂 Opening Kubernetes deployment editor...");
           setTimeout(() => onAdvance(3), 2000);
           setInput("");
+
+          // logEvent call for telemetry hook
+          logEvent("scenario_advance", {
+            module: activeModule,
+            session: sessionId,
+            fromStep: script[step].id,
+            toStep: current.next
+          });
+
           return;
         }
       }
 
-      if (
+      /*if (
         (cmd.includes("open main.tf") || cmd.includes("code main.tf"))
       ) {
         addLog("📂 Opening Terraform configuration (main.tf)...");
         setTimeout(() => onAdvance(3), 2000);
         setInput("");
         return;
-      }
+      }*/
 
       // Terraform command visual feedback (Module 3, Step 1-3)
       if (activeModule === "module-3") {
@@ -96,7 +124,18 @@ export default function GitTerminal({ onAdvance }) {
           addLog("Generating Terraform execution plan...");
         } else if (cmd.includes("open main.tf") || cmd.includes("code main.tf")) {
           addLog("📂 Opening Terraform configuration (main.tf)...");
-          addLog("You'll continue the next steps inside the IaC Editor.");
+          setTimeout(() => onAdvance(3), 2000);
+          setInput("");
+
+          // logEvent call for telemetry hook
+          logEvent("scenario_advance", {
+            module: activeModule,
+            session: sessionId,
+            fromStep: script[step].id,
+            toStep: current.next
+          });
+
+          return;
         }
       }
 
@@ -111,6 +150,13 @@ export default function GitTerminal({ onAdvance }) {
       }, 800);
     } else if (cmd === "help" || cmd === "hint") {
       addLog(`💡 Hint: ${current?.hint || "No hint available."}`);
+      logEvent("help_request", {
+        module: activeModule,
+        session: sessionId,
+        step: current?.id ?? script[step]?.id ?? null,
+        source: "git_terminal",
+        command: cmd
+      });
     } else {
       addLog("That command doesn't fit here. Type 'help' if you're unsure.");
     }

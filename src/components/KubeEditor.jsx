@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Editor from "@monaco-editor/react";
@@ -9,8 +9,9 @@ import FeedbackPanel from "@/components/FeedbackPanel";
 import ReflectionCard from "@/components/ReflectionCard";
 import { updateModuleProgress } from "@/lib/updateModuleProgress";
 import { scenarioScriptModule2 } from "@/data/scenarioScriptModule2";
+import { logEvent } from "@/lib/telemetry";
 
-export default function KubeEditor({ moduleData, onAdvance }) {
+export default function KubeEditor({ moduleData, onAdvance, sessionId }) {
   const erroneousYaml = `apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -53,6 +54,7 @@ spec:
   const currentStory = scenarioScriptModule2.find((s) => s.id === scenarioStep);
   const [debounceTimer, setDebounceTimer] = useState(null);
   const [liveLint, setLiveLint] = useState([]);
+  const editorLogRef = useRef(0);
 
   useEffect(() => {
     if (onAdvance) onAdvance(scenarioStep);
@@ -91,6 +93,12 @@ spec:
   /** Lint / quick analysis without committing */
   function handleLint() {
     const result = analyzeKubeConfig(yamlText);
+    logEvent("kube_linting_attempt", {
+      module: moduleData.id,
+      session: sessionId,
+      success: result.success,
+      details: result.feedback
+    });
     setFeedback(result.feedback);
   }
 
@@ -324,14 +332,25 @@ spec:
           height="320px"
           defaultLanguage="yaml"
           value={yamlText}
-          onChange={(val) => {
-            setYamlText(val ?? "");
-            if (debounceTimer) clearTimeout(debounceTimer);
-            setDebounceTimer(
-              setTimeout(() => {
-                localStorage.setItem("kubeEditorDraft", val);
-              }, 500)
-            );
+        onChange={(val) => {
+          setYamlText(val ?? "");
+          if (debounceTimer) clearTimeout(debounceTimer);
+          setDebounceTimer(
+            setTimeout(() => {
+              localStorage.setItem("kubeEditorDraft", val);
+            }, 500)
+          );
+            const now = Date.now();
+            if (now - editorLogRef.current > 1500) {
+              editorLogRef.current = now;
+              logEvent("editor_change", {
+                module: moduleData.id,
+                session: sessionId,
+                editor: "kube",
+                file: "manifest (YAML)",
+                length: (val ?? "").length
+              });
+            }
           }}
           theme="vs-dark"
         />
@@ -341,7 +360,14 @@ spec:
             💡 Note: Commit Fix abstracts the Git steps from Module 1 — stage, commit, push.
           </div>
           <button
-            onClick={() => setShowStructure(!showStructure)}
+            onClick={() => {setShowStructure(!showStructure);
+              logEvent("kube_show_structure_toggle", {
+                module: moduleData.id,
+                session: sessionId,
+                shown: !showStructure,
+                step: scenarioStep
+              });
+            }}
             className="text-sm text-blue-600 hover:underline"
             type="button"
           >
@@ -450,7 +476,13 @@ web    ClusterIP   10.0.0.12     80/TCP     2m`
             setShowReflection(false);
             updateModuleProgress(moduleData.id);
             setShowCompletionModal(true);
+            logEvent("module_complete", {
+              module: moduleData.id,
+              session: sessionId,
+              timestamp: Date.now()
+            });
           }}
+          sessionId={sessionId}
         />
       )}
 

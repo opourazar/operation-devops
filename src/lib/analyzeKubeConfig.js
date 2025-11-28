@@ -283,7 +283,3 @@ spec:
 
   return { success, feedback };
 }
-
-
-
-

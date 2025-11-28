@@ -8,8 +8,9 @@ import { format } from "date-fns";
 import FeedbackPanel from "@/components/FeedbackPanel";
 import ReflectionCard from "@/components/ReflectionCard";
 import { updateModuleProgress } from "@/lib/updateModuleProgress";
+import { logEvent } from "@/lib/telemetry";
 
-export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance }) {
+export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance, sessionId }) {
   const [code, setCode] = useState(`FROM node:18-alpine
 WORKDIR /app
 COPY . .
@@ -276,6 +277,13 @@ EXPOSE 80`;
       }
     } else if (cmd === "help") {
       addTerminalLog(`💡Hint: ${currentStory?.hint || "No hint available."}`);
+      logEvent("help_request", {
+        module: moduleData.id,
+        session: sessionId,
+        step: currentStory?.id ?? currentStep,
+        source: "gitops_editor_terminal",
+        command: cmd
+      });
     } else {
       addTerminalLog(" Rethink your command choice. Type 'help' for guidance.");
     }
@@ -307,6 +315,14 @@ EXPOSE 80`;
     const fb = analyzeCode(code, nextAttempt);
     setFeedback(fb.feedback);
 
+    // logEvent for telemetry hook for validation
+    logEvent("validation_result", {
+      module: moduleData.id,
+      session: sessionId,
+      success: fb.success,
+      details: fb.feedback
+    });
+
     if (fb.success) {
       addTerminalLog(`Commit successful: "${msg}"`);
       addTerminalLog("Great! Now push your branch to share changes.");
@@ -332,6 +348,13 @@ EXPOSE 80`;
     addTerminalLog("Solution applied. Review it carefully to understand why it works.");
     setFeedback(["Correct solution applied. Reflect on the Dockerfile structure."]);
     setShowSolutionButton(false);
+    logEvent("show_solution", {
+      module: moduleData.id,
+      session: sessionId,
+      editor: "gitops",
+      hint: "show_solution",
+      attemptsBeforeHint: attemptCount
+    });
   }
 
   // Push logic
@@ -341,9 +364,17 @@ EXPOSE 80`;
     const exposeMatch = code.match(/EXPOSE\s+(\d+)/i);
     const exposePort = exposeMatch ? Number(exposeMatch[1]) : null;
 
+    // logEvent for telemetry hook for validation
+    logEvent("validation_result", {
+      module: moduleData.id,
+      session: sessionId,
+      success: fb.success,
+      details: fb.feedback
+    });
+
     // Case 1: Dockerfile correct and port is 3000
     if (fb.success && exposePort === 3000) {
-      addTerminalLog("Ben: Perfect! All fixes verified. Merging your branch now...");
+      addTerminalLog("Ben: Perfect. Thanks! I'm going to merge your branch into main...");
       setTimeout(() => {
         if (onAdvance) onAdvance(8);
         setCurrentStep(8);
@@ -441,7 +472,15 @@ EXPOSE 80`;
             language="dockerfile"
             theme="vs-dark"
             value={code}
-            onChange={(value) => setCode(value || "")}
+            onChange={(value) => {setCode(value || ""); 
+              logEvent("editor_change", {
+                  module: moduleData.id,
+                  session: sessionId,
+                  editor: "gitops",
+                  file: "Dockerfile",
+                  length: code.length
+                });
+            }}
           />
         </div>
 
@@ -479,7 +518,13 @@ EXPOSE 80`;
             updateModuleProgress(moduleData.id);
             setShowReflection(false);
             setShowCompletionModal(true);
+            logEvent("module_complete", {
+              module: moduleData.id,
+              session: sessionId,
+              timestamp: Date.now()
+            });
           }}
+          sessionId={sessionId}
         />
       )}
 

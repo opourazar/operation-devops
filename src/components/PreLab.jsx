@@ -1,8 +1,9 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
+import { logEvent } from "@/lib/telemetry";
 
 function CodeBlock({ children }) {
   return (
@@ -12,17 +13,45 @@ function CodeBlock({ children }) {
   );
 }
 
-export default function PreLab({ moduleData, onContinue }) {
-  const [step, setStep] = useState(0);
+export default function PreLab({
+  moduleData,
+  onContinue,
+  initialStep = 0,
+  onStepChange
+}) {
+  const prelab = moduleData?.phases?.prelab;
+  const totalSteps = prelab?.activities?.length ?? 0;
+  const clampStep = (value) =>
+    totalSteps ? Math.min(Math.max(value ?? 0, 0), totalSteps - 1) : 0;
+
+  const [step, setStep] = useState(() => clampStep(initialStep));
   const [selected, setSelected] = useState(null);
   const [quizFeedback, setQuizFeedback] = useState("");
   const [showDeepDive, setShowDeepDive] = useState(false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState(false);
-  const prelab = moduleData?.phases?.prelab;
 
   if (!prelab) return null;
   const current = prelab.activities[step];
   const isLastStep = step === prelab.activities.length - 1;
+
+  // logEvent call for telemetry hook prelab progress insight
+  useEffect(() => {
+    logEvent("prelab_step_view", {
+      module: moduleData.id,
+      step,
+      type: current.type
+    });
+  }, [step]);
+
+  // Sync step with persisted value when it changes externally (resume flow)
+  useEffect(() => {
+    setStep(clampStep(initialStep));
+  }, [initialStep, totalSteps]);
+
+  // Notify parent whenever the step changes so it can persist progress
+  useEffect(() => {
+    onStepChange?.(step);
+  }, [step, onStepChange]);
 
   function handleNext() {
     // Only lock when a quiz is unanswered or incorrect
@@ -36,24 +65,45 @@ export default function PreLab({ moduleData, onContinue }) {
     } else onContinue();
   }
 
+  function handlePrev() {
+    if (step === 0) return;
+    setIsAnswerCorrect(false);
+    setStep(step - 1);
+    setSelected(null);
+    setQuizFeedback("");
+    setShowDeepDive(false);
+  }
+
   /** Unified quiz handler for both inline and standalone quizzes */
   function handleAnswer(option, quizObj = current) {
     setSelected(option);
     const isCorrect = option === quizObj.correct_answer;
     setIsAnswerCorrect(isCorrect);
 
+    const questionText =
+      quizObj?.question ||
+      current.question ||
+      current.scenario ||
+      (typeof current.content === "string" ? current.content.slice(0, 120) : "Unknown question");
+
     if (isCorrect) {
       setQuizFeedback("✅ Correct! " + quizObj.explanation);
     } else {
       setQuizFeedback("❌ Not quite. " + quizObj.explanation);
     }
+
+    // logEvent call for telemetry hook for answers
+    logEvent("prelab_quiz_answer", {
+      module: moduleData.id,
+      step,
+      question: questionText,
+      answer: option,
+      correct: isCorrect
+    });
   }
 
   return (
     <Card className="p-6 space-y-4 bg-slate-50 border border-slate-200">
-      <h2 className="text-xl font-semibold text-slate-800">{prelab.title}</h2>
-      <p className="text-sm text-gray-600">{prelab.description}</p>
-
       <CardContent className="space-y-6">
         {/* Concept card */}
         {current.type === "concept_card" && (
@@ -316,7 +366,10 @@ export default function PreLab({ moduleData, onContinue }) {
         )}
       </CardContent>
 
-      <div className="flex justify-end">
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={handlePrev} disabled={step === 0}>
+          Back
+        </Button>
         <Button
           onClick={handleNext}
           disabled={current.type === "quiz" && !isAnswerCorrect}
