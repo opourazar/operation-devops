@@ -90,7 +90,7 @@ spec:
     monaco.editor.setModelMarkers(model, "kube-lint", markers);
   }, [liveLint]);
 
-  /** Lint / quick analysis without committing */
+  // Lint/quick analysis without committing. Includes telemetry hook for validation outcomes chart.
   function handleLint() {
     const result = analyzeKubeConfig(yamlText);
     logEvent("kube_linting_attempt", {
@@ -104,10 +104,7 @@ spec:
 
   /**
    * Live linter which supports multi-doc YAML (Deployment + Service).
-   * Adds warnings for:
-   *  - missing kind
-   *  - candidate Service selector mismatches
-   *  - targetPort / containerPort mismatches
+   * Adds warnings for: missing kind; candidate Service selector mismatches; targetPort / containerPort mismatches 
    */
   function runLiveLint(code) {
     try {
@@ -297,9 +294,9 @@ spec:
     <div className="space-y-6">
       {/* Story Context Panel */}
       {currentStory && scenarioStep < 7 && (
-        <Card className="p-4 border-l-4 border-blue-500 bg-blue-50">
-          <p className="font-semibold whitespace-pre-line text-left">{currentStory.story}</p>
-          <p className="text-sm text-slate-600 mt-1">
+        <Card className="p-4 border-l-4 border-blue-500 bg-blue-50 w-full max-w-full">
+          <p className="font-semibold whitespace-pre-line text-left break-words">{currentStory.story}</p>
+          <p className="text-sm text-slate-600 mt-1 break-words">
             <em>{currentStory.learning_focus}</em>
           </p>
         </Card>
@@ -335,11 +332,11 @@ spec:
         onChange={(val) => {
           setYamlText(val ?? "");
           if (debounceTimer) clearTimeout(debounceTimer);
-          setDebounceTimer(
-            setTimeout(() => {
-              localStorage.setItem("kubeEditorDraft", val);
-            }, 500)
-          );
+            setDebounceTimer(
+              setTimeout(() => {
+                localStorage.setItem("kubeEditorDraft", val);
+              }, 500)
+            );
             const now = Date.now();
             if (now - editorLogRef.current > 1500) {
               editorLogRef.current = now;
@@ -361,12 +358,6 @@ spec:
           </div>
           <button
             onClick={() => {setShowStructure(!showStructure);
-              logEvent("kube_show_structure_toggle", {
-                module: moduleData.id,
-                session: sessionId,
-                shown: !showStructure,
-                step: scenarioStep
-              });
             }}
             className="text-sm text-blue-600 hover:underline"
             type="button"
@@ -428,7 +419,7 @@ spec:
           <Button
             onClick={() => {
               setFeedback([
-                { type: "tip", message: "kubectl get pods — simulated output:" },
+                { type: "tip", message: "kubectl get pods - simulated output:" },
                 {
                   type: "code",
                   code: `NAME        READY   STATUS    RESTARTS   AGE
@@ -442,6 +433,7 @@ web    ClusterIP   10.0.0.12     80/TCP     2m`
                 }
               ]);
               setScenarioStep(7);
+              setShowReflection(true);
             }}
           >
             Run kubectl get
@@ -453,13 +445,6 @@ web    ClusterIP   10.0.0.12     80/TCP     2m`
         <Card className="p-4 border-l-4 border-green-500 bg-green-50 space-y-3">
           <p className="font-semibold">{currentStory.story}</p>
           <p className="text-sm italic text-slate-600">{currentStory.learning_focus}</p>
-
-          <Button
-            className="bg-green-600 text-white"
-            onClick={() => setShowReflection(true)}
-          >
-            Continue to Reflection
-          </Button>
         </Card>
       )}
 

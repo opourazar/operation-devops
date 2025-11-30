@@ -27,7 +27,6 @@ export default function ModuleWorkspace() {
     ? scenarioScriptModule2
     : scenarioScript;
   const sessionId = getSessionId();
-  const resumeLogged = useRef(false);
   const startLogged = useRef(false);
   const progressKey = (id) => `moduleProgress:${id}`;
   const validStages = new Set(["prelab", "terminal", "editor", "complete"]);
@@ -68,14 +67,6 @@ export default function ModuleWorkspace() {
         }
       }
 
-      if (!resumeLogged.current) {
-        logEvent("module_resume", {
-          module: activeId,
-          session: sessionId
-        });
-        resumeLogged.current = true;
-      }
-
       // Restore cheat sheet open preference
       setCheatOpen(getCheatSheetOpen(activeId));
     }
@@ -83,10 +74,10 @@ export default function ModuleWorkspace() {
     localStorage.removeItem("branchName");
   }, []);
 
-  // Telemetry hook for module start
   useEffect(() => {
     if (!moduleData) return;
 
+    // Telemetry hook module_start marks the beginning for phase timing metrics
     if (!startLogged.current) {
       logEvent("module_start", {
         module: moduleData.id,
@@ -99,6 +90,7 @@ export default function ModuleWorkspace() {
 
   useEffect(() => {
     if (!moduleData) return;
+    // Telemetry hook for stage changes used for prelab vs lab duration comparison
     logEvent("module_stage_change", {
       module: moduleData.id,
       session: sessionId,
@@ -148,7 +140,7 @@ export default function ModuleWorkspace() {
   const prelab = moduleData?.phases?.prelab;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-6xl mx-auto h-screen min-w-0 overflow-y-scroll px-4">
       <div className="flex items-start gap-3 justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{moduleData.title}</h1>

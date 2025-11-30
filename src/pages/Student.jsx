@@ -2,12 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getModules } from "@/lib/loadModules";
-import { logEvent } from "@/lib/telemetry";
-import {
-  loadCheatSheet,
-  exportCheatSheet,
-  setCheatSheetOpen
-} from "@/lib/cheatsheet";
+import { loadCheatSheet, exportCheatSheet } from "@/lib/cheatsheet";
+import CheatSheetModal from "@/components/CheatSheetModal";
 
 const progressKey = (id) => `moduleProgress:${id}`;
 const getSavedProgress = (id) => {
@@ -20,9 +16,29 @@ const getSavedProgress = (id) => {
   }
 };
 
+function clearEditorDrafts() {
+  try {
+    // Remove IaC drafts (all files)
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("iacEditor_"))
+      .forEach((k) => localStorage.removeItem(k));
+
+    // Remove Kubernetes drafts
+    localStorage.removeItem("kubeEditorDraft");
+    localStorage.removeItem("kubeConfig");
+
+    // Remove GitOps drafts/state
+    localStorage.removeItem("gitopsEditorDraft");
+    localStorage.removeItem("gitopsEditorState");
+  } catch (err) {
+    console.warn("Could not clear editor drafts", err);
+  }
+}
+
 export default function Student() {
   const [modules, setModules] = useState([]);
   const [expanded, setExpanded] = useState(null);
+  const [cheatModal, setCheatModal] = useState({ open: false, moduleId: null, title: "" });
 
   useEffect(() => {
     const storedModules = getModules();
@@ -33,19 +49,19 @@ export default function Student() {
   function handleStartModule(moduleId, options = {}) {
     if (options.resetProgress) {
       localStorage.removeItem(progressKey(moduleId));
+      clearEditorDrafts();
     }
 
-    logEvent("module_launch", {
-      module: moduleId,
-      timestamp: Date.now()
-    });
     localStorage.setItem("activeModule", moduleId);
     window.location.href = "/workspace";
   }
 
   function handleOpenCheat(moduleId) {
-    setCheatSheetOpen(moduleId, true);
-    handleStartModule(moduleId);
+    setCheatModal({
+      open: true,
+      moduleId,
+      title: modules.find((m) => m.id === moduleId)?.title || ""
+    });
   }
 
   // Extract all post-lab resources grouped by module
@@ -120,7 +136,7 @@ export default function Student() {
                       onClick={() => handleOpenCheat(m.id)}
                       disabled={m.status === "locked"}
                     >
-                      {hasCheat ? "Cheat Sheet" : "Add Notes"}
+                      {hasCheat ? "View Cheat Sheet" : "Add Notes"}
                     </Button>
                     {hasCheat && (
                       <Button
@@ -185,6 +201,13 @@ export default function Student() {
           </div>
         </section>
       )}
+
+      <CheatSheetModal
+        moduleId={cheatModal.moduleId}
+        moduleTitle={cheatModal.title}
+        open={cheatModal.open}
+        onClose={() => setCheatModal({ open: false, moduleId: null, title: "" })}
+      />
     </div>
   );
 }

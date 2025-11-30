@@ -1,21 +1,16 @@
 
-# Add autoscaling here. Follow the TODOs or click "Show autoscaling structure" in the editor to peek at a solved example.
-#
-# TODO 1 — Launch template:
-#   - Resource name: aws_launch_template.demo_template
-#   - name_prefix: "demo-template-"
-#   - image_id: "ami-12345"
-#   - instance_type: var.instance_type
-#
-# TODO 2 — Auto Scaling Group:
-#   - Resource name: aws_autoscaling_group.demo_asg
-#   - desired_capacity: 1, min_size: 1, max_size: 3
-#   - Include launch_template { id = aws_launch_template.demo_template.id, version = "$Latest" }
-#
-# TODO 3 — Tag for readability:
-#   Inside the ASG, add:
-#   key   = "Name"
-#   value = "demo-autoscaling"
-#   propagate_at_launch = true
-#
-# Start your resources below. Keep the TODOs for quick reminders while you type.
+# Add autoscaling here. The "Show autoscaling structure" toggle shows a different example, which you can use for orientation.
+# The launch template describes an instance blueprint; the ASG defines the elasticity; and the tag block allows traceability/cost reporting.
+
+# TODO 1 - Launch template:
+#   - Create a launch template for your EC2 nodes (prefix, AMI (Amazon Machine Image) id choice, instance_type from vars).
+#   - Pick names you can reference later from the ASG.
+
+# TODO 2 - Auto Scaling Group:
+#   - Create an ASG with a small min and a larger max capacity.
+#   - Wire it to your launch template (template id and a version string).
+
+# TODO 3 - Tag for readability:
+#   - Add a tag block inside the ASG for discoverability (name/value you choose, propagate at launch).
+
+# Add your code below.

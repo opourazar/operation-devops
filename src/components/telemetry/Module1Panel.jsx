@@ -17,7 +17,7 @@ export function Module1Panel({ events }) {
 
   return (
     <div className="border p-4 rounded-lg">
-      <h2 className="text-lg font-semibold text-blue-600">Module 1 - GitOps Editor Lab Analytics</h2>
+      <h2 className="text-lg font-semibold text-blue-600">Module 1 - GitOps & Containerization</h2>
 
       <ul className="mt-2 text-sm space-y-1">
         <li><strong>Total commits:</strong> {commits.length}</li>

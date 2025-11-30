@@ -27,4 +27,11 @@ export function updateModuleProgress(completedId) {
 
   saveModules(updated);
   console.log("Module progress updated and saved to localStorage.");
+
+  // Clear in-progress state so the dashboard shows Restart instead of Resume
+  try {
+    localStorage.removeItem(`moduleProgress:${completedId}`);
+  } catch (err) {
+    console.warn("Could not clear module progress for", completedId, err);
+  }
 }

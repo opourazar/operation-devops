@@ -10,6 +10,7 @@ export function Module3Panel({ events }) {
   const fails = validations.filter(v => !v.success).length;
 
   const apply = mod.filter(e => e.action === "apply_fix").length;
+  const structureToggles = mod.filter(e => e.event === "iac_show_structure_toggle").length;
 
   const editorChanges = mod.filter(e => e.event === "editor_change").length;
   const help = mod.filter(e => e.event === "help_request").length;
@@ -24,6 +25,7 @@ export function Module3Panel({ events }) {
         <li><strong>Successful:</strong> {success}</li>
         <li><strong>Failed:</strong> {fails}</li>
         <li><strong>Apply actions:</strong> {apply}</li>
+        <li><strong>Structure reference toggles:</strong> {structureToggles}</li>
         <li><strong>Editor changes:</strong> {editorChanges}</li>
         <li><strong>Help requests:</strong> {help}</li>
         {quizStats.total > 0 && (

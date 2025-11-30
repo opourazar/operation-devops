@@ -7,7 +7,7 @@ import { updateModuleProgress } from "@/lib/updateModuleProgress";
 import { scenarioScriptModule3 } from "@/data/scenarioScriptModule3";
 import { logEvent } from "@/lib/telemetry";
 
-// Mock Terraform file imports (replace with actual paths if needed)
+// Mock Terraform file imports
 import mainFile from "@/data/terraform/main.tf?raw";
 import variablesFile from "@/data/terraform/variables.tf?raw";
 import outputsFile from "@/data/terraform/outputs.tf?raw";
@@ -42,6 +42,7 @@ export default function IaCEditor({ moduleData, onAdvance, sessionId }) {
     availability: 99.2,
   });
   const [applied, setApplied] = useState(false);
+  const [monitoringInfo, setMonitoringInfo] = useState(null);
   const [validated, setValidated] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -142,19 +143,31 @@ export default function IaCEditor({ moduleData, onAdvance, sessionId }) {
   }
 
 
-  // Monitoring simulation
-  function simulateMetrics() {
-    let newMetrics = { ...metrics };
+  // Monitoring simulation (different modes to refresh dashboard)
+  function simulateMetrics(mode = "apply") {
+    const base = { cost: 220, latency: 250, availability: 99.2 };
+    let newMetrics = { ...base };
+
     if (code.includes("eu-central-1")) newMetrics.latency = 110;
     if (code.includes("t3.micro")) newMetrics.cost = 75;
     if (code.includes("autoscaling_group")) newMetrics.availability = 99.9;
+
+    if (mode === "check") {
+      // Simulate load revealing latency creep before autoscaling
+      newMetrics = {
+        ...newMetrics,
+        latency: Math.max(newMetrics.latency, 180),
+        availability: Math.min(newMetrics.availability, 97.5)
+      };
+    }
+
     setMetrics(newMetrics);
   }
 
   function handleValidate() {
     if (!activeButtons.validate) return;
 
-    // logEvent call for telemetry hook
+    // Telemetry hook for editor metrics
     logEvent("editor_action", {
       module: moduleData.id,
       session: sessionId,
@@ -216,7 +229,7 @@ export default function IaCEditor({ moduleData, onAdvance, sessionId }) {
         setFeedback(findings);
         setValidated(true);
 
-        // logEvent call for telemetry hook for validation result
+        // telemetry hook for validation result
         logEvent("validation_result", {
           module: moduleData.id,
           session: sessionId,
@@ -230,7 +243,7 @@ export default function IaCEditor({ moduleData, onAdvance, sessionId }) {
         findings.push("Continue completing the remaining To-Dos.");
         setFeedback(findings);
 
-        // logEvent call for telemetry hook for validation result
+        // telemetry hook for validation result
         logEvent("validation_result", {
           module: moduleData.id,
           session: sessionId,
@@ -265,7 +278,7 @@ export default function IaCEditor({ moduleData, onAdvance, sessionId }) {
       return;
     }
 
-    // logEvent call for telemetry hook
+    // telemetry hook for editor metrics
     logEvent("editor_action", {
       module: moduleData.id,
       session: sessionId,
@@ -274,7 +287,18 @@ export default function IaCEditor({ moduleData, onAdvance, sessionId }) {
       step: currentStep
     });
 
-    simulateMetrics();
+    simulateMetrics("apply");
+    setMonitoringInfo(
+      currentStep === 9
+        ? {
+            title: "Autoscaling applied",
+            notes: ["Load stabilized; replicas scale with demand.", "SLA healthy."]
+          }
+        : {
+            title: "Deployment applied",
+            notes: ["Baseline metrics captured after apply."]
+          }
+    );
     setFeedback([
       "🚀 Terraform apply simulated successfully.",
       "✅ Resources deployed in eu-central-1.",
@@ -288,10 +312,15 @@ export default function IaCEditor({ moduleData, onAdvance, sessionId }) {
 
   function handleCheckMetrics() {
     if (!activeButtons.checkMetrics) return;
-    simulateMetrics();
+    simulateMetrics("check");
+    setApplied(true);
+    setMonitoringInfo({
+      title: "Load check (pre-autoscaling)",
+      notes: ["Traffic spike observed; consider enabling autoscaling next."]
+    });
     setFeedback([
       "📊 Monitoring: Metrics show latency at 180 ms (acceptable), cost still optimized.",
-      "No SLA violation detected."
+      "No SLA (Service Level Agreement) violation detected."
     ]);
     setTimeout(() => setCurrentStep(7), 1000);
   }
@@ -307,7 +336,7 @@ export default function IaCEditor({ moduleData, onAdvance, sessionId }) {
   }
 
   return (
-    <Card className="p-4 bg-slate-950 text-slate-100 font-mono space-y-4 relative">
+    <Card className="p-4 bg-slate-950 text-slate-100 font-mono space-y-4 relative w-full">
       {/* Header */}
       <div>
         <h2 className="text-lg font-semibold text-sky-400 mb-1">
@@ -321,9 +350,9 @@ export default function IaCEditor({ moduleData, onAdvance, sessionId }) {
 
       {/* Story Panel */}
       {currentStory && (
-        <Card className="p-4 border-l-4 border-blue-500 bg-blue-50 mb-3 text-slate-900">
-          <p className="font-semibold">{currentStory.story}</p>
-          <p className="text-sm text-slate-600 mt-1">
+        <Card className="p-4 border-l-4 border-blue-500 bg-blue-50 mb-3 text-slate-900 w-full max-w-full">
+          <p className="font-semibold break-words">{currentStory.story}</p>
+          <p className="text-sm text-slate-600 mt-1 break-words">
             <em>{currentStory.learning_focus}</em>
           </p>
         </Card>
@@ -379,7 +408,7 @@ export default function IaCEditor({ moduleData, onAdvance, sessionId }) {
       {selectedFile === "autoscaling.tf" && (
         <div className="flex items-center justify-between text-xs text-slate-400">
           <span>
-            Tip: follow the TODOs or reveal a reference structure for launch templates and Auto Scaling Groups.
+            Tip: If you are stuck, you can reveal a reference structure for launch templates and Auto Scaling Groups.
           </span>
           <button
             type="button"
@@ -402,34 +431,36 @@ export default function IaCEditor({ moduleData, onAdvance, sessionId }) {
       )}
 
       {showAutoStructure && selectedFile === "autoscaling.tf" && (
-        <div className="mt-2 p-3 border-l-4 border-slate-700 bg-slate-900 rounded text-sm">
+        <div className="mt-2 p-3 border-l-4 border-slate-700 bg-slate-900 rounded text-sm space-y-2">
           <pre className="whitespace-pre-wrap text-left text-slate-100">
-{`resource "aws_launch_template" "demo_template" {
-  name_prefix   = "demo-template-"
-  image_id      = "ami-12345"
+{`# Example reference (different names from your task):
+resource "aws_launch_template" "web_lt" {
+  name_prefix   = "web-lt-"
+  image_id      = "ami-0abc123"
   instance_type = var.instance_type
 }
 
-resource "aws_autoscaling_group" "demo_asg" {
-  desired_capacity = 1
+resource "aws_autoscaling_group" "web_asg" {
+  desired_capacity = 2
   min_size         = 1
-  max_size         = 3
+  max_size         = 4
 
   launch_template {
-    id      = aws_launch_template.demo_template.id
+    id      = aws_launch_template.web_lt.id
     version = "$Latest"
   }
 
   tag {
     key                 = "Name"
-    value               = "demo-autoscaling"
+    value               = "web-asg"
     propagate_at_launch = true
   }
-}`}
+}
+`}
           </pre>
-          <p className="text-xs text-slate-400 mt-2">
-            Use this as a reference—keep working from the TODOs above so validation still guides you.
-          </p>
+          <ul className="text-xs text-slate-400 list-disc list-inside space-y-1">
+            <li>Use this pattern, but pick names/values that fit your own TODOs.</li>
+          </ul>
         </div>
       )}
 
@@ -513,6 +544,12 @@ resource "aws_autoscaling_group" "demo_asg" {
           <h3 className="text-emerald-400 font-semibold mb-2">
             📊 Monitoring Dashboard
           </h3>
+          {monitoringInfo && (
+            <p className="text-xs text-slate-400 mb-2">
+              <strong className="text-slate-200">{monitoringInfo.title}:</strong>{" "}
+              {monitoringInfo.notes.join(" ")}
+            </p>
+          )}
           <div className="grid grid-cols-3 gap-2 text-sm">
             <div className="p-2 bg-slate-800 rounded-lg text-center">
               💰 Cost<br />
@@ -572,3 +609,4 @@ resource "aws_autoscaling_group" "demo_asg" {
     </Card>
   );
 }
+

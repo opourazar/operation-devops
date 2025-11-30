@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { logEvent } from "@/lib/telemetry";
 import { v4 as uuid } from "uuid";
 
 function ReflectionCard({ moduleData, onComplete, sessionId }) {
@@ -39,14 +38,6 @@ function ReflectionCard({ moduleData, onComplete, sessionId }) {
 
     // Trigger reflection update event so history refreshes immediately
     window.dispatchEvent(new Event("reflectionsUpdated"));
-
-    // Telemetry hook for reflection submit
-    logEvent("reflection_submit", {
-      module: moduleData.id,
-      session: sessionId,
-      answers: entries,
-      timestamp: now
-    });
 
     // Mark module as complete in localStorage
     localStorage.setItem(`${moduleData?.id}-complete`, "true");

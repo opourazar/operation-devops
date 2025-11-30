@@ -70,7 +70,7 @@ export const scenarioScriptModule2 = [
   {
     id: 7,
     story:
-      "Great work! You fixed the Deployment and restored service reliability. Time to reflect on the debugging process — just like a real DevOps retrospective.",
+      "Great work! You fixed the Deployment and restored service reliability. Time to reflect on the debugging process. Scroll down to find the reflection card to reflect and finish the module.",
     expected: ["continue", "next"],
     success: "Moving to reflection...",
     hint: "Type: continue",

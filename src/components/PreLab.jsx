@@ -34,15 +34,6 @@ export default function PreLab({
   const current = prelab.activities[step];
   const isLastStep = step === prelab.activities.length - 1;
 
-  // logEvent call for telemetry hook prelab progress insight
-  useEffect(() => {
-    logEvent("prelab_step_view", {
-      module: moduleData.id,
-      step,
-      type: current.type
-    });
-  }, [step]);
-
   // Sync step with persisted value when it changes externally (resume flow)
   useEffect(() => {
     setStep(clampStep(initialStep));
@@ -92,7 +83,7 @@ export default function PreLab({
       setQuizFeedback("❌ Not quite. " + quizObj.explanation);
     }
 
-    // logEvent call for telemetry hook for answers
+    // Telemetry hook used for quiz failure stats per module
     logEvent("prelab_quiz_answer", {
       module: moduleData.id,
       step,

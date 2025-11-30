@@ -6,7 +6,6 @@ import { Module1Panel } from "@/components/telemetry/Module1Panel";
 import { Module2Panel } from "@/components/telemetry/Module2Panel";
 import { Module3Panel } from "@/components/telemetry/Module3Panel";
 import { OverviewPanel } from "@/components/telemetry/OverviewPanel";
-import { StudentTimeline } from "@/components/telemetry/StudentTimeline";
 import { ValidationAttemptsChart } from "@/components/telemetry/ValidationAttemptsChart";
 import { DurationChart } from "@/components/telemetry/DurationChart";
 import { HelpUsageChart } from "@/components/telemetry/HelpUsageChart";
@@ -50,8 +49,6 @@ export default function Instructor() {
       <Module2Panel events={events} />
       <Module3Panel events={events} />
 
-      {/* Student timeline */}
-      <StudentTimeline events={events} />
     </div>
   );
 }

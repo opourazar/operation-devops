@@ -40,13 +40,13 @@ export default function GitTerminal({ onAdvance, sessionId }) {
     const matches =
       current?.expected?.some((pattern) => cmd.startsWith(pattern)) || false;
 
-    // logEvent call for telemetry hook for terminal progression
-      logEvent("terminal_command", {
-        module: activeModule,
-        session: sessionId,
-        step: script[step].id,
-        command: cmd
-      });
+    // Telemetry hook for terminal commands count
+    logEvent("terminal_command", {
+      module: activeModule,
+      session: sessionId,
+      step: script[step].id,
+      command: cmd
+    });
     
       // Dynamic branch name parsing
     const branchMatch = cmd.match(
@@ -77,14 +77,6 @@ export default function GitTerminal({ onAdvance, sessionId }) {
         setTimeout(() => onAdvance(3), 2000);
         setInput("");
         
-        // logEvent call for telemetry hook
-          logEvent("scenario_advance", {
-            module: activeModule,
-            session: sessionId,
-            fromStep: script[step].id,
-            toStep: current.next
-          });
-
         return;
       }
 
@@ -94,29 +86,11 @@ export default function GitTerminal({ onAdvance, sessionId }) {
           addLog("📂 Opening Kubernetes deployment editor...");
           setTimeout(() => onAdvance(3), 2000);
           setInput("");
-
-          // logEvent call for telemetry hook
-          logEvent("scenario_advance", {
-            module: activeModule,
-            session: sessionId,
-            fromStep: script[step].id,
-            toStep: current.next
-          });
-
           return;
         }
       }
 
-      /*if (
-        (cmd.includes("open main.tf") || cmd.includes("code main.tf"))
-      ) {
-        addLog("📂 Opening Terraform configuration (main.tf)...");
-        setTimeout(() => onAdvance(3), 2000);
-        setInput("");
-        return;
-      }*/
-
-      // Terraform command visual feedback (Module 3, Step 1-3)
+      // Terraform command feedback (Module 3, Step 1-3)
       if (activeModule === "module-3") {
         if (cmd.startsWith("terraform init")) {
           addLog("🔧 Initializing Terraform... downloading providers and modules...");
@@ -126,15 +100,6 @@ export default function GitTerminal({ onAdvance, sessionId }) {
           addLog("📂 Opening Terraform configuration (main.tf)...");
           setTimeout(() => onAdvance(3), 2000);
           setInput("");
-
-          // logEvent call for telemetry hook
-          logEvent("scenario_advance", {
-            module: activeModule,
-            session: sessionId,
-            fromStep: script[step].id,
-            toStep: current.next
-          });
-
           return;
         }
       }
@@ -150,6 +115,7 @@ export default function GitTerminal({ onAdvance, sessionId }) {
       }, 800);
     } else if (cmd === "help" || cmd === "hint") {
       addLog(`💡 Hint: ${current?.hint || "No hint available."}`);
+      // Telemetry hook used in help usage chart
       logEvent("help_request", {
         module: activeModule,
         session: sessionId,

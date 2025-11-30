@@ -1,5 +1,5 @@
 /** LocalStorage-based analytics + event logging for the prototype.
- * Used across Instructor Dashboard panels.
+ * Used across instructor dashboard panels.
  */
 
 const STORAGE_KEY = "telemetry_events";
@@ -16,7 +16,25 @@ export function getSessionId() {
   return sid;
 }
 
-// Log event
+// Retrieval + Maintenance
+export function getTelemetry() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+}
+
+export function clearTelemetry() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+// Deduplicate near-duplicate events for a given module/session/type
+function shouldSkipRepeat(last, next) {
+  if (!last) return false;
+  const sameEvent = last.event === next.event;
+  const sameModule = last.module === next.module;
+  const sameSession = last.session === next.session;
+  const within5s = Math.abs(next.ts - last.ts) < 5000;
+  return sameEvent && sameModule && sameSession && within5s;
+}
+
 export function logEvent(event, payload = {}) {
   try {
     const session = payload.session ?? getSessionId();
@@ -29,6 +47,11 @@ export function logEvent(event, payload = {}) {
     };
 
     const prev = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    const last = prev.length > 0 ? prev[prev.length - 1] : null;
+    if (shouldSkipRepeat(last, entry)) {
+      return;
+    }
+
     prev.push(entry);
     const trimmed =
       prev.length > MAX_EVENTS ? prev.slice(prev.length - MAX_EVENTS) : prev;
@@ -36,15 +59,6 @@ export function logEvent(event, payload = {}) {
   } catch (err) {
     console.error("Telemetry store failed", err);
   }
-}
-
-// Retrieval + Maintenance
-export function getTelemetry() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-}
-
-export function clearTelemetry() {
-  localStorage.removeItem(STORAGE_KEY);
 }
 
 // Quiz failure aggregation
@@ -82,40 +96,138 @@ export function groupByModule(events) {
 
 // Module durations
 export function computeModuleDurations(events) {
-  const durations = {};
+  const byModule = events
+    .filter((e) => e.module)
+    .sort((a, b) => a.ts - b.ts)
+    .reduce((acc, e) => {
+      acc[e.module] = acc[e.module] || [];
+      acc[e.module].push(e);
+      return acc;
+    }, {});
 
-  events.forEach((e) => {
-    if (!e.module) return;
+  const result = {};
 
-    // Track start
-    if (e.event === "module_start") {
-      if (!durations[e.module]) durations[e.module] = {};
-      durations[e.module].start = e.ts;
-      durations[e.module].session = e.session;
+  Object.entries(byModule).forEach(([mod, list]) => {
+    let lastStart = null;
+    let lastSession = null;
+    let latestPair = null;
+
+    for (const e of list) {
+      if (e.event === "module_start") {
+        lastStart = e.ts;
+        lastSession = e.session;
+      }
+
+      if (e.event === "module_complete" && lastStart) {
+        const duration = e.ts - lastStart;
+        if (duration >= 0) {
+          latestPair = {
+            session: e.session ?? lastSession,
+            start: lastStart,
+            end: e.ts,
+            durationMs: duration
+          };
+        }
+        lastStart = null;
+        lastSession = null;
+      }
     }
 
-    // Track completion
-    if (e.event === "module_complete") {
-      if (!durations[e.module]) durations[e.module] = {};
-      durations[e.module].end = e.ts;
-      durations[e.module].session = e.session;
-    }
+    result[mod] =
+      latestPair || {
+        session: lastSession,
+        start: lastStart,
+        end: null,
+        durationMs: null
+      };
   });
 
-  // Derive duration
-  const result = {};
-  for (const mod of Object.keys(durations)) {
-    const data = durations[mod];
-    result[mod] = {
-      session: data.session,
-      start: data.start ?? null,
-      end: data.end ?? null,
-      durationMs:
-        data.start && data.end ? data.end - data.start : null
-    };
-  }
-
   return result;
+}
+
+// Phase durations (prelab vs lab) per module (latest run)
+export function computeModulePhaseDurations(events) {
+  const byModule = events
+    .filter((e) => e.module)
+    .sort((a, b) => a.ts - b.ts)
+    .reduce((acc, e) => {
+      acc[e.module] = acc[e.module] || [];
+      acc[e.module].push(e);
+      return acc;
+    }, {});
+
+  const output = {};
+
+  Object.entries(byModule).forEach(([mod, list]) => {
+    let run = null;
+    const runs = [];
+
+    const commitRun = () => {
+      if (run && run.end && run.start && run.end >= run.start) {
+        runs.push({ ...run });
+      }
+      run = null;
+    };
+
+    list.forEach((e) => {
+      if (e.event === "module_start") {
+        // start a new run
+        commitRun();
+        run = {
+          session: e.session,
+          start: e.ts,
+          prelabStart: e.ts,
+          prelabEnd: null,
+          labStart: null,
+          end: null
+        };
+      }
+
+      if (e.event === "module_stage_change" && run) {
+        if (e.stage === "terminal" || e.stage === "editor") {
+          if (!run.prelabEnd) {
+            run.prelabEnd = e.ts;
+          }
+          if (!run.labStart) {
+            run.labStart = e.ts;
+          }
+        }
+      }
+
+      if (e.event === "module_complete" && run) {
+        run.end = e.ts;
+        commitRun();
+      }
+    });
+
+    // If a run is in progress without completion, keep as latest
+    if (run && run.start) {
+      runs.push(run);
+    }
+
+    const latest = runs.length > 0 ? runs[runs.length - 1] : null;
+    if (!latest) return;
+
+    const prelabMs =
+      latest.prelabStart && latest.prelabEnd && latest.prelabEnd >= latest.prelabStart
+        ? latest.prelabEnd - latest.prelabStart
+        : null;
+
+    const labEnd = latest.end || latest.prelabEnd || latest.start;
+    const labStart = latest.labStart || latest.prelabEnd;
+    const labMs =
+      labStart && labEnd && labEnd >= labStart ? labEnd - labStart : null;
+
+    output[mod] = {
+      session: latest.session,
+      prelabMs,
+      labMs,
+      start: latest.start,
+      end: latest.end
+    };
+  });
+
+  return output;
 }
 
 // Timeline for a specific session

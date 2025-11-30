@@ -11,7 +11,22 @@ import { updateModuleProgress } from "@/lib/updateModuleProgress";
 import { logEvent } from "@/lib/telemetry";
 
 export default function GitOpsEditor({ moduleData, scenarioStep = 3, onAdvance, sessionId }) {
-  const [code, setCode] = useState(`FROM node:18-alpine
+  const gitopsStateKey = "gitopsEditorState";
+  const loadGitopsState = () => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = localStorage.getItem(gitopsStateKey);
+      return raw ? JSON.parse(raw) : {};
+    } catch (err) {
+      console.warn("Unable to read gitops state", err);
+      return {};
+    }
+  };
+
+  const initialState = loadGitopsState();
+  const gitopsDraft =
+    typeof window !== "undefined" ? localStorage.getItem("gitopsEditorDraft") : null;
+  const [code, setCode] = useState(initialState.code ?? gitopsDraft ?? `FROM node:18-alpine
 WORKDIR /app
 COPY . .
 RUN npm install`);
@@ -27,19 +42,29 @@ EXPOSE 80`;
   const [showReflection, setShowReflection] = useState(false);
   const [pipelineTrigger, setPipelineTrigger] = useState(false);
   const [currentStep, setCurrentStep] = useState(scenarioStep);
-  const branchName = useState(localStorage.getItem("branchName") || "feature/fix-dockerfile");
-  const [lastCommitMsg, setLastCommitMsg] = useState("");
+  const [branchName] = useState(localStorage.getItem("branchName") || "feature/fix-dockerfile");
+  const [lastCommitMsg, setLastCommitMsg] = useState(initialState.lastCommitMsg || "");
   const terminalRef = useRef(null);
-  const [mergeConflict, setMergeConflict] = useState(false);
-  const [conflictIntroduced, setConflictIntroduced] = useState(false);
+  const [mergeConflict, setMergeConflict] = useState(initialState.mergeConflict || false);
+  const [conflictIntroduced, setConflictIntroduced] = useState(initialState.conflictIntroduced || false);
   const [attemptCount, setAttemptCount] = useState(0);
   const [showSolutionButton, setShowSolutionButton] = useState(false);
-  const [staged, setStaged] = useState(false);
-  const [hasCommitted, setHasCommitted] = useState(false);
-  const [hasFetched, setHasFetched] = useState(false);
+  const [staged, setStaged] = useState(initialState.staged || false);
+  const [hasCommitted, setHasCommitted] = useState(initialState.hasCommitted || false);
+  const [hasFetched, setHasFetched] = useState(initialState.hasFetched || false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const [reflectionText, setReflectionText] = useState("");
   const currentStory = scenarioScript.find((s) => s.id === currentStep);
+  const gitopsStateRef = useRef(initialState);
+
+  const persistState = (updates) => {
+    if (typeof window === "undefined") return;
+    gitopsStateRef.current = { ...gitopsStateRef.current, ...updates };
+    try {
+      localStorage.setItem(gitopsStateKey, JSON.stringify(gitopsStateRef.current));
+    } catch (err) {
+      console.warn("Unable to persist gitops state", err);
+    }
+  };
 
   useEffect(() => {
     terminalRef.current?.scrollTo(0, terminalRef.current.scrollHeight);
@@ -48,6 +73,7 @@ EXPOSE 80`;
   useEffect(() => {
     if (currentStep === 8) {
       setHasFetched(false);
+      persistState({ hasFetched: false });
     }
   }, [currentStep]);
 
@@ -111,16 +137,24 @@ EXPOSE 80`;
     const expected = currentStory?.expected || [];
     const matches = expected.some((pattern) => cmd.startsWith(pattern));
 
+    // quick branch listing
+    if (cmd === "git branch") {
+      addTerminalLog(`* ${branchName}`);
+      addTerminalLog("  main");
+      return;
+    }
+
     // handle "git add"
     if (cmd.startsWith("git add") && currentStep !== 7 && currentStep !== 9) {
       setStaged(true);
+      persistState({ staged: true });
       addTerminalLog("Files staged successfully.");
       logAction("stage", "Files staged");
 
-      if (onAdvance && currentStory?.next) {
-      setTimeout(() => onAdvance(currentStory.next), 600);
-      setCurrentStep(currentStory.next);
-    }
+      if (currentStep === 3 && onAdvance && currentStory?.next) {
+        setTimeout(() => onAdvance(currentStory.next), 600);
+        setCurrentStep(currentStory.next);
+      }
       return;
     }
 
@@ -136,10 +170,12 @@ EXPOSE 80`;
 
       if (commitMsg) {
         setLastCommitMsg(commitMsg);
+        persistState({ lastCommitMsg: commitMsg });
       }
 
       handleCommit(commitMsg);
       setStaged(false);
+      persistState({ staged: false });
       return;
     }
 
@@ -165,6 +201,7 @@ EXPOSE 80`;
     if (currentStep === 7) {
       if (cmd.startsWith("git add")) {
         setStaged(true);
+        persistState({ staged: true });
         addTerminalLog("Files staged successfully.");
         return;
       }
@@ -173,10 +210,16 @@ EXPOSE 80`;
           addTerminalLog("⚠️ You must stage files first (use 'git add .').");
           return;
         }
-        handleCommit();
+        const commitMsgMatch = cmd.match(/git commit -m\s+["'](.+)["']/);
+        const commitMsg = commitMsgMatch ? commitMsgMatch[1] : null;
+        if (commitMsg) {
+          setLastCommitMsg(commitMsg);
+          persistState({ lastCommitMsg: commitMsg });
+        }
+        handleCommit(commitMsg);
         setStaged(false);
         setHasCommitted(true); 
-        //addTerminalLog("✅ Commit created, now push your branch.");
+        persistState({ staged: false, hasCommitted: true });
         return;
       }
       if (cmd.startsWith("git push")) {
@@ -186,6 +229,7 @@ EXPOSE 80`;
         }
         handlePush();
         setHasCommitted(false);
+        persistState({ hasCommitted: false });
         return;
       }
     }
@@ -195,6 +239,7 @@ EXPOSE 80`;
       if (cmd === "git fetch") {
         addTerminalLog("Fetched latest updates from origin/main.");
         setHasFetched(true);
+        persistState({ hasFetched: true });
         return;
       }
 
@@ -207,6 +252,7 @@ EXPOSE 80`;
         addTerminalLog("⚠️ Merge conflict detected in Dockerfile!");
         setMergeConflict(true);
         setConflictIntroduced(true);
+        persistState({ mergeConflict: true, conflictIntroduced: true });
         setCode(prev =>
           `<<<<<<< HEAD\n${prev.trim()}\n=======\nEXPOSE 8080\n>>>>>>> main\n`
         );
@@ -223,6 +269,7 @@ EXPOSE 80`;
     if (currentStep === 9) {
       if (cmd.startsWith("git add")) {
         setStaged(true);
+        persistState({ staged: true });
         addTerminalLog("Files staged after resolving conflicts.");
         return;
       }
@@ -238,12 +285,17 @@ EXPOSE 80`;
           return;
         }
 
-        addTerminalLog("Commit successful: 'fix: resolve merge conflict'");
-        setMergeConflict(false);
-        setConflictIntroduced(false);
+        const commitMsgMatch = cmd.match(/git commit -m\s+["'](.+)["']/);
+        const commitMsg = commitMsgMatch ? commitMsgMatch[1] : null;
+        if (commitMsg) {
+          setLastCommitMsg(commitMsg);
+          persistState({ lastCommitMsg: commitMsg });
+        }
+
+        handleCommit(commitMsg);
         setStaged(false);
         setHasCommitted(true);
-        addTerminalLog("✅ Conflicts resolved and committed locally. Now push to main.");
+        persistState({ staged: false, hasCommitted: true });
         return;
       }
 
@@ -268,7 +320,7 @@ EXPOSE 80`;
       return;
     }
 
-    // Success feedback and story step progression or show hints
+    // Success feedback and story step progression or show hints (includes telemetry hook for help_request usage)
     if (matches) {
       addTerminalLog(` ${currentStory.success}`);
       if (onAdvance && currentStory.next) {
@@ -291,6 +343,14 @@ EXPOSE 80`;
 
   // Commit logic
   function handleCommit(msgFromCmd) {
+    const defaultMsg = mergeConflict ? "fix: resolve merge conflict" : "fix: applied improvements";
+    const commitMessage = (msgFromCmd && msgFromCmd.trim()) || lastCommitMsg || defaultMsg;
+
+    if (msgFromCmd) {
+      setLastCommitMsg(commitMessage);
+      persistState({ lastCommitMsg: commitMessage });
+    }
+
     // If resolving a conflict
     if (mergeConflict) {
       if (code.includes("<<<<<<<") || code.includes("=======") || code.includes(">>>>>>>")) {
@@ -300,7 +360,8 @@ EXPOSE 80`;
         addTerminalLog("Merge conflict resolved! Committing fix...");
         setMergeConflict(false);
         setConflictIntroduced(false);
-        addTerminalLog(`Commit successful: "${lastCommitMsg || "fix: resolve merge conflict"}"`);
+        persistState({ mergeConflict: false, conflictIntroduced: false });
+        addTerminalLog(`Commit successful: "${commitMessage}"`);
         setShowReflection(true);
         if (onAdvance) onAdvance(10);
         setCurrentStep(10);
@@ -309,13 +370,12 @@ EXPOSE 80`;
     }
 
     // Regular commit flow. Shows solution button if multiple failed attempts
-    const msg = msgFromCmd || lastCommitMsg || "fix: applied improvements";
     const nextAttempt = attemptCount + 1;
     setAttemptCount(nextAttempt);
     const fb = analyzeCode(code, nextAttempt);
     setFeedback(fb.feedback);
 
-    // logEvent for telemetry hook for validation
+    // logEvent for validation outcomes chart (telemetry)
     logEvent("validation_result", {
       module: moduleData.id,
       session: sessionId,
@@ -324,10 +384,11 @@ EXPOSE 80`;
     });
 
     if (fb.success) {
-      addTerminalLog(`Commit successful: "${msg}"`);
+      addTerminalLog(`Commit successful: "${commitMessage}"`);
       addTerminalLog("Great! Now push your branch to share changes.");
       setAttemptCount(0);
       setShowSolutionButton(false);
+      persistState({ hasCommitted: true, staged: false, lastCommitMsg: commitMessage });
       if (currentStep !== 7 && onAdvance && currentStory?.next) {
         setTimeout(() => onAdvance(currentStory.next), 800);
         setCurrentStep(currentStory.next);
@@ -343,6 +404,7 @@ EXPOSE 80`;
     }
   }
 
+  // Adds correct solution to the editor. Includes telemetry hook for solution usage.
   function handleShowSolution() {
     setCode(correctSolution);
     addTerminalLog("Solution applied. Review it carefully to understand why it works.");
@@ -363,14 +425,6 @@ EXPOSE 80`;
     const fb = analyzeCode(code);
     const exposeMatch = code.match(/EXPOSE\s+(\d+)/i);
     const exposePort = exposeMatch ? Number(exposeMatch[1]) : null;
-
-    // logEvent for telemetry hook for validation
-    logEvent("validation_result", {
-      module: moduleData.id,
-      session: sessionId,
-      success: fb.success,
-      details: fb.feedback
-    });
 
     // Case 1: Dockerfile correct and port is 3000
     if (fb.success && exposePort === 3000) {
@@ -422,9 +476,9 @@ EXPOSE 80`;
     <div className="space-y-6">
       {/* Story block */}
       {currentStory && (
-        <Card className="p-4 border-l-4 border-blue-500 bg-blue-50">
-          <p className="font-semibold">{currentStory.story}</p>
-          <p className="text-sm text-slate-600 mt-1">
+        <Card className="p-4 border-l-4 border-blue-500 bg-blue-50 w-full max-w-full">
+          <p className="font-semibold break-words">{currentStory.story}</p>
+          <p className="text-sm text-slate-600 mt-1 break-words">
             <em>{currentStory.learning_focus}</em>
           </p>
         </Card>
@@ -472,14 +526,20 @@ EXPOSE 80`;
             language="dockerfile"
             theme="vs-dark"
             value={code}
-            onChange={(value) => {setCode(value || ""); 
+            onChange={(value) => {
+              const nextVal = value || "";
+              setCode(nextVal);
+              if (typeof window !== "undefined") {
+                localStorage.setItem("gitopsEditorDraft", nextVal);
+              }
+              persistState({ code: nextVal });
               logEvent("editor_change", {
-                  module: moduleData.id,
-                  session: sessionId,
-                  editor: "gitops",
-                  file: "Dockerfile",
-                  length: code.length
-                });
+                module: moduleData.id,
+                session: sessionId,
+                editor: "gitops",
+                file: "Dockerfile",
+                length: nextVal.length
+              });
             }}
           />
         </div>
@@ -514,8 +574,8 @@ EXPOSE 80`;
         <ReflectionCard
           moduleData={moduleData}
           onComplete={() => {
-            addTerminalLog("🎉 Reflection saved! Module complete — next challenge unlocked.");
-            updateModuleProgress(moduleData.id);
+      addTerminalLog("🎉 Reflection saved! Module complete — next challenge unlocked.");
+      updateModuleProgress(moduleData.id);
             setShowReflection(false);
             setShowCompletionModal(true);
             logEvent("module_complete", {

@@ -402,10 +402,10 @@
   },
   {
     "id": "module-2",
-    "title": "Container Orchestration & CI/CD Automation",
+    "title": "Container Orchestration (Kubernetes)",
     "category": "Automation & Scaling",
     "difficulty": "Intermediate",
-    "swebok_area": "Software Engineering Models & Methods / Deployment",
+    "swebok_area": "Software Construction / Deployment",
     "status": "locked",
     "learning_objectives": [
       "Understand and apply Kubernetes declarative configuration principles.",
@@ -685,7 +685,7 @@
     "title": "Cloud Deployment & Monitoring",
     "category": "Continuous Delivery & Cloud Integration",
     "difficulty": "Advanced",
-    "swebok_area": "Software Engineering Management / Deployment / Maintenance",
+    "swebok_area": "Software Maintenance & Operations (Deployment, Monitoring, FinOps)",
     "status": "locked",
     "learning_objectives": [
       "Apply Infrastructure as Code (IaC) principles using Terraform and Helm.",
@@ -697,7 +697,7 @@
     "phases": {
       "prelab": {
         "title": "From Infrastructure to Observability",
-        "description": "Learn how declarative Infrastructure-as-Code, validation, cost analysis, and monitoring form an iterative DevOps workflow — and prepare yourself to debug and optimize Terraform configurations in the lab.",
+        "description": "Learn how declarative Infrastructure-as-Code, validation, cost analysis, and monitoring form an iterative DevOps workflow. Prepare yourself to debug and optimize Terraform configurations in the lab.",
         "activities": [
           {
             "type": "concept_card",

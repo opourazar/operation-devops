@@ -4,33 +4,28 @@ A web-based conceptual prototype for exploring and teaching DevOps principles th
 This project is part of my bachelor thesis:
 “Teaching DevOps in Higher Education: Exploring Instructor Approaches, Student Perspectives, and the Role of Web-Based Learning Tools.”
 
-## Current Status (Setup & Layout Structure)
+## Current Status
 
-- Project initialized with Vite + React
-- Tailwind CSS v3 and shadcn/ui configured
-- Basic routing and navigation established (Student, Pipeline, Monitoring, Reflection, Instructor)
-- GitOps Workspace implemented with:
-    - Monaco-based code editor (Dockerfile example)
-    - Commit → Feedback → Reflection workflow
-    - Context-aware feedback (tiered hints)
-    - Local reflection storage
-    - Mock Push → Pipeline Simulation (build/deploy visualization)
+- Vite + React app with Tailwind CSS and shadcn/ui
+- Routing for Student and Instructor dashboards plus module workspaces
+- GitOps/Kube/IaC workspaces with Monaco-based editors and guided scenarios
+- Local-only storage (no backend): progress, reflections, and telemetry stored in `localStorage`
+- Instructor analytics: validation outcomes, help usage, quiz failures, phase (prelab vs lab) timing
 
-## Next Steps
+## Requirements
 
-- Extend Pipeline Simulation with success/failure paths and logs
-- Implement Monitoring View (Grafana-style mock metrics)
-- Add hint-tier progression logic and refined success conditions
-- Introduce instructor perspective (scenario creation + feedback analytics)
+- Node.js 20+ (recommended LTS). Install from https://nodejs.org if not already available.
+- npm (bundled with Node).
 
 ## Tech Stack
 
-- **Frontend**: React (Vite)
-- **Styling**: Tailwind CSS + shadcn/ui + Lucide Icons
+- **Frontend**: Vite + React
+- **Styling**: Tailwind CSS + shadcn/ui
 - **Routing**: React Router DOM
 - **State / Storage**: React hooks + Local Storage
-- **Animations (soon)**: Framer Motion
-- **Charts (soon)**: Recharts
+- **Editors**: Monaco (`@monaco-editor/react`)
+- **Animations**: Framer Motion
+- **Charts**: Recharts
 - **Package Manager**: npm
 
 ## Project Structure
@@ -38,8 +33,10 @@ This project is part of my bachelor thesis:
 The relevant files can be found in `src` folder:
 ```
 src/
- ├─ components/        → Reusable UI elements (Editor, FeedbackPanel, ReflectionCard, PipelineSimulator)
- ├─ pages/             → App views (Student, Pipeline, Monitoring, Reflection, Instructor)
+ ├─ components/        → Reusable UI elements (Module editors and their components, GitTerminal, telemetry components, ui components)
+ ├─ data/              → Predefined data used by the application (module definition, scenario scripts, mock files)
+ ├─ lib/               → Helper logic (code analyzation, module loading, telemetry)
+ ├─ pages/             → App views (Student, ModuleWorkspace, Reflection, Instructor)
  ├─ App.jsx            → Main component with routing
  ├─ main.jsx           → Entry point
  └─ index.css          → Tailwind directives
@@ -55,3 +52,22 @@ npm install
 npm run dev
 ```
 Visit http://localhost:5173 to view the app.
+
+## Useful Scripts
+
+- `npm run dev` — start Vite dev server
+- `npm run build` — production build
+- `npm run preview` — preview production build
+- `npm run lint` — run ESLint
+
+## Telemetry (Instructor Dashboard)
+
+- Events are stored locally in the browser’s `localStorage` (no network calls).
+- Key events: module start/stage changes/completion, validation/lint attempts, help requests, solution usage, editor changes, quiz answers, structure toggles.
+- Phase timing is derived from `module_start`, `module_stage_change` (prelab→lab), and `module_complete`.
+- Clear telemetry via the Instructor dashboard button if you want a clean run.
+
+## Data & Progress Persistence
+
+- Module progress, cheat sheets, reflections, and editor drafts are stored in `localStorage`.
+- To restart cleanly, clear browser storage for the site.

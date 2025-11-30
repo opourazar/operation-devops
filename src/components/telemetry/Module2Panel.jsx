@@ -15,7 +15,7 @@ export function Module2Panel({ events }) {
 
   return (
     <div className="border p-4 rounded-lg">
-      <h2 className="text-lg font-semibold text-green-600">Module 2 - Kubernetes</h2>
+      <h2 className="text-lg font-semibold text-green-600">Module 2 - Container Orchestration (Kubernetes)</h2>
 
       <ul className="mt-2 text-sm space-y-1">
         <li><strong>Lint attempts:</strong> {lint.length}</li>

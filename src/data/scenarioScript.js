@@ -3,7 +3,7 @@ export const scenarioScript = [
     id: 1,
     story: " Your colleague, Ben, asks for your help. His Dockerfile doesn’t build correctly. To avoid interfering with the main branch, you decide to create and switch to a new feature branch.",
     expected: ["git checkout -b", "git switch -c"],
-    hint: " Remember: use 'git checkout -b <branch>' or 'git switch -c <branch>' to create and move to a new branch.",
+    hint: " Remember: use 'git checkout -b <branch>' or 'git switch -c <branch>' to create and move to a new branch. If you forget the name later, 'git branch' will list it.",
     success: "Branch 'feature/fix-dockerfile' created and switched successfully.",
     next: 2,
     learning_focus: "Version control safety — isolate work via branching (Git best practice)."
@@ -39,7 +39,7 @@ export const scenarioScript = [
     id: 5,
     story: "Excellent! Your fix is committed locally. Now push your branch to the remote repository to share it with the team.",
     sequence: ["git push origin <your-branch>"],
-    hint: "Use 'git push origin <your-branch>' to publish your branch.",
+    hint: "Use 'git push origin <your-branch>' to publish your branch. If you forgot your branch name, 'git branch' lists branches.",
     success: "Branch pushed to remote...",
     next: 6,
     learning_focus: "Remote collaboration workflow — pushing code."
@@ -57,7 +57,7 @@ export const scenarioScript = [
     id: 7,
     story: "Make Leia’s suggested change by exposing port 3000, then stage, commit, and push your update again for approval.",
     expected: ["git add .", "git commit -m", "git push"],
-    hint: "Use 'git add .', then 'git commit -m \"e.g., fix: expose port 3000\"', and finally 'git push origin <your-branch>'.",
+    hint: "Use 'git add .', then 'git commit -m \"e.g., fix: expose port 3000\"', and finally 'git push origin <your-branch>'. If you forgot your branch name, 'git branch' lists branches.",
     success: "Update pushed successfully. Leia approved your pull request — ready to merge!",
     next: 8,
     learning_focus: "Incorporating review feedback — demonstrating continuous improvement and professionalism."
