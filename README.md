@@ -51,14 +51,6 @@ npm install
 # Run development server
 npm run dev
 ```
-Visit http://localhost:5173 to view the app.
-
-## Useful Scripts
-
-- `npm run dev` — start Vite dev server
-- `npm run build` — production build
-- `npm run preview` — preview production build
-- `npm run lint` — run ESLint
 
 ## Telemetry (Instructor Dashboard)
 
@@ -70,4 +62,5 @@ Visit http://localhost:5173 to view the app.
 ## Data & Progress Persistence
 
 - Module progress, cheat sheets, reflections, and editor drafts are stored in `localStorage`.
-- To restart cleanly, clear browser storage for the site.
+- To restart cleanly, clear browser storage for the site. 
+- Note!: Depending on browser settings, localStorage may be cleared automatically after closing it, so progress, reflections, and telemetry will reset.
